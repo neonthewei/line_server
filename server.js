@@ -426,9 +426,21 @@ function processDifyMessage(difyMessage) {
   const flexMessages = [];
   let remainingText = difyMessage;
   
+  // Extract record ID from the format [{"id":106}]
+  let recordId = null;
+  const idRegex = /\[\{"id":(\d+)\}\]/;
+  const idMatch = difyMessage.match(idRegex);
+  
+  if (idMatch) {
+    recordId = idMatch[1];
+    console.log('Extracted record ID:', recordId);
+    // Remove the ID part from the remaining text
+    remainingText = remainingText.replace(idMatch[0], '').trim();
+  }
+  
   // Extract multiple JSON entries
-  // First, try to find all instances of the exact format
-  const exactFormatRegex = /以下是您本次的紀錄：\s*\n\{\s*\n\s*"category":\s*"([^"]+)",\s*\n\s*"amount":\s*(\d+),\s*\n\s*"item":\s*"([^"]+)",\s*\n\s*"memo":\s*"([^"]*)",\s*\n\s*"user_id":\s*"([^"]+)",\s*\n\s*"datetime":\s*"([^"]+)"\s*\n\s*\}/g;
+  // First, try to find all instances of the exact format with the new JSON structure (without item)
+  const exactFormatRegex = /以下是您本次的紀錄：\s*\n\{\s*\n\s*"category":\s*"([^"]+)",\s*\n\s*"amount":\s*(\d+),\s*\n\s*"memo":\s*"([^"]*)",\s*\n\s*"user_id":\s*"([^"]*)",\s*\n\s*"datetime":\s*"([^"]+)"\s*\n\s*\}/g;
   
   let exactMatch;
   while ((exactMatch = exactFormatRegex.exec(difyMessage)) !== null) {
@@ -436,10 +448,10 @@ function processDifyMessage(difyMessage) {
     const jsonData = {
       category: exactMatch[1],
       amount: parseInt(exactMatch[2], 10),
-      item: exactMatch[3],
-      memo: exactMatch[4],
-      user_id: exactMatch[5],
-      datetime: exactMatch[6]
+      memo: exactMatch[3],
+      user_id: exactMatch[4],
+      datetime: exactMatch[5],
+      record_id: recordId // Add the record ID to the data
     };
     
     console.log('Extracted data using exact format match:', jsonData);
@@ -457,7 +469,8 @@ function processDifyMessage(difyMessage) {
     console.log(`Found ${flexMessages.length} exact format matches`);
     return {
       text: remainingText,
-      flexMessages: flexMessages
+      flexMessages: flexMessages,
+      recordId: recordId // Pass the record ID separately
     };
   }
   
@@ -479,6 +492,9 @@ function processDifyMessage(difyMessage) {
         .replace(/,\s*}/g, '}');
       
       const jsonData = JSON.parse(normalizedJsonString);
+      // Add the record ID to the data
+      jsonData.record_id = recordId;
+      
       console.log('Successfully parsed JSON data from code block:', JSON.stringify(jsonData, null, 2));
       
       // Create a Flex Message
@@ -511,6 +527,9 @@ function processDifyMessage(difyMessage) {
           .replace(/,\s*}/g, '}');
         
         const jsonData = JSON.parse(normalizedJsonString);
+        // Add the record ID to the data
+        jsonData.record_id = recordId;
+        
         console.log('Successfully parsed JSON data from multiline format:', JSON.stringify(jsonData, null, 2));
         
         // Create a Flex Message
@@ -533,8 +552,8 @@ function processDifyMessage(difyMessage) {
     const potentialJson = curlyBracesMatch[1];
     
     // Check if this looks like a valid JSON object for our use case
-    if (potentialJson.includes('"category"') || potentialJson.includes('"amount"') || potentialJson.includes('"item"') ||
-        potentialJson.includes("'category'") || potentialJson.includes("'amount'") || potentialJson.includes("'item'")) {
+    if (potentialJson.includes('"category"') || potentialJson.includes('"amount"') || 
+        potentialJson.includes("'category'") || potentialJson.includes("'amount'")) {
       try {
         console.log('Extracted JSON from curly braces:', potentialJson);
         
@@ -546,6 +565,9 @@ function processDifyMessage(difyMessage) {
           .replace(/,\s*}/g, '}');
         
         const jsonData = JSON.parse(normalizedJsonString);
+        // Add the record ID to the data
+        jsonData.record_id = recordId;
+        
         console.log('Successfully parsed JSON data from curly braces:', JSON.stringify(jsonData, null, 2));
         
         // Create a Flex Message
@@ -565,7 +587,8 @@ function processDifyMessage(difyMessage) {
     console.log(`Found ${flexMessages.length} JSON objects in total`);
     return {
       text: remainingText,
-      flexMessages: flexMessages
+      flexMessages: flexMessages,
+      recordId: recordId // Pass the record ID separately
     };
   }
   
@@ -573,7 +596,8 @@ function processDifyMessage(difyMessage) {
   console.log('No JSON found in the message, sending as plain text');
   return {
     text: difyMessage,
-    flexMessages: []
+    flexMessages: [],
+    recordId: recordId // Pass the record ID separately
   };
 }
 
@@ -582,52 +606,131 @@ function createFlexMessage(data) {
   console.log('Creating Flex Message with data:', JSON.stringify(data, null, 2));
   
   try {
-    // Load the flex.json template
-    const flexTemplate = require('./flex.json');
-    
-    // Create a deep copy to avoid modifying the original template
-    const flexMessage = JSON.parse(JSON.stringify(flexTemplate));
-    
-    // Update the Flex Message with the data from JSON
-    if (flexMessage && flexMessage.body && flexMessage.body.contents) {
-      // Update category
-      if (flexMessage.body.contents[0]) {
-        flexMessage.body.contents[0].text = data.category || "未分類";
-      }
-      
-      // Update item name
-      if (flexMessage.body.contents[1]) {
-        flexMessage.body.contents[1].text = data.item || "未命名項目";
-      }
-      
-      // Update amount, memo, and date if the structure exists
-      if (flexMessage.body.contents[3] && flexMessage.body.contents[3].contents) {
-        // Update amount
-        const amountBox = flexMessage.body.contents[3].contents[0];
-        if (amountBox && amountBox.contents && amountBox.contents[1]) {
-          amountBox.contents[1].text = `$${data.amount}`;
+    // 直接創建一個符合LINE規範的Flex Message結構，而不是使用模板
+    const flexMessage = {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "text",
+                text: data.category || "未分類",
+                weight: "bold",
+                color: "#1DB446",
+                size: "md",
+                flex: 6,
+                gravity: "center",
+                offsetBottom: "2px"
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "text",
+                    text: "支出",
+                    size: "sm",
+                    color: "#FFFFFF",
+                    align: "center",
+                    weight: "bold"
+                  }
+                ],
+                backgroundColor: "#1DB446",
+                cornerRadius: "20px",
+                paddingAll: "5px",
+                paddingStart: "0px",
+                paddingEnd: "0px",
+                flex: 2
+              }
+            ],
+            alignItems: "flex-end"
+          },
+          {
+            type: "text",
+            text: `$${data.amount}`,
+            size: "3xl",
+            margin: "xs",
+            wrap: true,
+            weight: "bold"
+          },
+          {
+            type: "separator",
+            margin: "lg"
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "lg",
+            spacing: "md",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "text",
+                    text: "備註",
+                    weight: "bold",
+                    size: "sm",
+                    color: "#555555",
+                    flex: 2
+                  },
+                  {
+                    type: "text",
+                    text: data.memo || "無備註",
+                    size: "sm",
+                    color: "#111111",
+                    align: "end",
+                    wrap: true,
+                    flex: 3
+                  }
+                ]
+              },
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "text",
+                    text: "日期",
+                    weight: "bold",
+                    size: "sm",
+                    color: "#555555",
+                    flex: 2
+                  },
+                  {
+                    type: "text",
+                    text: data.datetime || new Date().toISOString().split('T')[0],
+                    size: "sm",
+                    color: "#111111",
+                    align: "end",
+                    flex: 3
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        paddingAll: "20px"
+      },
+      styles: {
+        body: {
+          backgroundColor: "#FFFFFF"
         }
-        
-        // Update memo (if exists)
-        const memoBox = flexMessage.body.contents[3].contents[1];
-        if (memoBox && memoBox.contents && memoBox.contents[1]) {
-          memoBox.contents[1].text = data.memo || "無備註";
-        }
-        
-        // Update date
-        const dateBox = flexMessage.body.contents[3].contents[2];
-        if (dateBox && dateBox.contents && dateBox.contents[1]) {
-          dateBox.contents[1].text = data.datetime || new Date().toISOString().split('T')[0];
-        }
       }
-    }
+    };
     
     console.log('Created Flex Message structure:', JSON.stringify(flexMessage, null, 2));
     return flexMessage;
   } catch (error) {
     console.error('Error creating Flex Message:', error);
     // Return a simple fallback Flex Message
-    return {
+    const fallbackMessage = {
       type: "bubble",
       body: {
         type: "box",
@@ -642,18 +745,18 @@ function createFlexMessage(data) {
           },
           {
             type: "text",
-            text: data.item || "未命名項目",
-            weight: "bold",
-            size: "xxl",
-            margin: "md",
-            wrap: true
-          },
-          {
-            type: "text",
             text: `$${data.amount}`,
             size: "xl",
             weight: "bold",
             margin: "md"
+          },
+          {
+            type: "text",
+            text: data.memo || "無備註",
+            size: "sm",
+            color: "#555555",
+            margin: "md",
+            wrap: true
           },
           {
             type: "text",
@@ -666,6 +769,8 @@ function createFlexMessage(data) {
         ]
       }
     };
+    
+    return fallbackMessage;
   }
 }
 
@@ -728,27 +833,76 @@ app.post('/webhook', verifyLineSignature, async (req, res) => {
         
         // 回覆用戶
         if (response) {
-          // Add userId to the response object for use in push messages if needed
-          const responseWithUserId = {
-            text: response,
-            userId: userId
-          };
-          
-          // Since we already used the replyToken for the loading indicator,
-          // we need to send a push message instead
-          await axios.post(
-            'https://api.line.me/v2/bot/message/push',
-            {
-              to: userId,
-              messages: createMessagesFromResponse(responseWithUserId, isConyMessage)
-            },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN}`
-              }
+          try {
+            // Add userId to the response object for use in push messages if needed
+            const responseWithUserId = {
+              text: response,
+              userId: userId
+            };
+            
+            // 創建訊息
+            const messages = createMessagesFromResponse(responseWithUserId, isConyMessage);
+            
+            // 檢查訊息是否為空
+            if (messages.length === 0) {
+              console.log('No messages to send');
+              continue;
             }
-          );
+            
+            // 檢查訊息結構
+            console.log('Sending messages to LINE:', JSON.stringify(messages, null, 2));
+            
+            // Since we already used the replyToken for the loading indicator,
+            // we need to send a push message instead
+            const pushResponse = await axios.post(
+              'https://api.line.me/v2/bot/message/push',
+              {
+                to: userId,
+                messages: messages
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN}`
+                }
+              }
+            );
+            
+            console.log('Successfully sent push message to LINE:', {
+              status: pushResponse.status,
+              statusText: pushResponse.statusText,
+              data: pushResponse.data
+            });
+          } catch (error) {
+            console.error('Error sending message to LINE:', {
+              error: error.response?.data || error.message,
+              status: error.response?.status,
+              details: error.response?.data?.details || 'No details available'
+            });
+            
+            // 嘗試發送簡單的文字訊息作為備用
+            try {
+              await axios.post(
+                'https://api.line.me/v2/bot/message/push',
+                {
+                  to: userId,
+                  messages: [{
+                    type: 'text',
+                    text: '抱歉，在處理您的請求時發生錯誤。我們已記錄您的記帳資訊，但無法顯示詳細資訊。'
+                  }]
+                },
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN}`
+                  }
+                }
+              );
+              console.log('Successfully sent fallback message');
+            } catch (fallbackError) {
+              console.error('Error sending fallback message:', fallbackError.message);
+            }
+          }
         }
 
         // 標記事件為已處理
@@ -804,7 +958,70 @@ function createMessagesFromResponse(response, isConyMessage = false) {
       };
       messages.push(flexMessageObj);
     });
+    
+    // Add a separate text message for the record ID if available
+    if (processedMessage.recordId) {
+      const idMessageObj = {
+        type: 'text',
+        text: `您的記帳編號是: ${processedMessage.recordId}`,
+        // 添加Quick Reply按鈕，用於編輯帳單
+        quickReply: {
+          items: [
+            {
+              type: "action",
+              imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838055/edit_icon_paq8p0.png",
+              action: {
+                type: "uri",
+                label: "編輯帳單",
+                uri: `https://liff.line.me/${process.env.LIFF_ID}?recordId=${processedMessage.recordId}`
+              }
+            },
+            {
+              type: "action",
+              imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838524/cost_icon_zn9vqm.png",
+              action: {
+                type: "message",
+                label: "消費狀況",
+                text: "查看我的消費狀況"
+              }
+            },
+            {
+              type: "action",
+              imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838529/goal_icon_ym4xf2.png",
+              action: {
+                type: "message",
+                label: "目標進度",
+                text: "查看我的目標進度"
+              }
+            }
+          ]
+        }
+      };
+      
+      // 如果是Cony訊息，添加sender信息
+      if (isConyMessage) {
+        idMessageObj.sender = {
+          name: "Cony",
+          iconUrl: "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8"
+        };
+      }
+      
+      messages.push(idMessageObj);
+    }
   }
+
+  // 確保訊息數量不超過LINE的限制（5個）
+  if (messages.length > 5) {
+    console.log(`訊息數量超過LINE限制，截斷至5個訊息`);
+    messages.splice(5);
+  }
+
+  // 檢查每個訊息的結構是否符合LINE的規範
+  messages.forEach((msg, index) => {
+    if (msg.type === 'flex' && (!msg.contents || !msg.contents.type)) {
+      console.error(`第${index}個Flex訊息結構不符合規範:`, JSON.stringify(msg, null, 2));
+    }
+  });
 
   return messages;
 }
