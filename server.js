@@ -17,9 +17,9 @@ const processedEvents = new Set();
 // 設置過期時間（毫秒）
 const EVENT_EXPIRY = 1000 * 60 * 5; // 5 minutes
 
-// 記帳提醒設置
-let reminderEnabled = true; // 提醒開關，默認開啟
-const reminderUserIds = new Map(); // 存儲需要接收提醒的用戶 ID
+// 管理員 Push 模式設置
+let adminPushModeEnabled = false; // 管理員 Push 模式開關
+const TARGET_USER_ID = 'U82150395bb148926c8584e86daa26b0d'; // 指定接收消息的用戶 ID
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -826,82 +826,53 @@ app.post('/webhook', verifyLineSignature, async (req, res) => {
           const userMessage = event.message.text;
           console.log('Received text message:', userMessage);
           
-          // 處理提醒相關命令
-          if (userMessage === '開啟記帳提醒') {
-            registerUserForReminder(userId);
-            response = {
-              type: 'text',
-              text: '已開啟每日記帳提醒！我會在每天上午 10:30 提醒您記帳 💰'
-            };
-          } else if (userMessage === '關閉記帳提醒') {
-            unregisterUserForReminder(userId);
-            response = {
-              type: 'text',
-              text: '已關閉每日記帳提醒。您可以隨時輸入「開啟記帳提醒」重新開啟。'
-            };
-          } else if (userMessage === '提醒狀態') {
-            const status = reminderUserIds.get(userId);
-            response = {
-              type: 'text',
-              text: `您的記帳提醒目前${status ? '已開啟' : '已關閉'}。${reminderEnabled ? '系統提醒功能正常運作中。' : '注意：系統提醒功能目前已全局關閉。'}`
-            };
-          } else if (userMessage === '立即提醒') {
-            // 立即發送提醒測試
-            try {
-              await sendReminderMessage(userId);
+          // 處理管理員命令
+          if (userId === process.env.ADMIN_USER_ID) {
+            // 管理員命令處理
+            if (userMessage === '開啟Push模式') {
+              toggleAdminPushMode(true);
               response = {
                 type: 'text',
-                text: '測試提醒已發送！'
+                text: '已開啟 Push 模式。您發送的所有消息將被轉發給目標用戶。'
               };
-            } catch (error) {
+              continue; // 跳過後續處理
+            } else if (userMessage === '關閉Push模式') {
+              toggleAdminPushMode(false);
               response = {
                 type: 'text',
-                text: '測試提醒發送失敗，請稍後再試。'
+                text: '已關閉 Push 模式。'
               };
-            }
-          } else if (userMessage === '管理員開啟提醒系統' && userId === process.env.ADMIN_USER_ID) {
-            // 只有管理員可以全局開關提醒系統
-            toggleReminderFeature(true);
-            response = {
-              type: 'text',
-              text: '已全局開啟記帳提醒系統。'
-            };
-          } else if (userMessage === '管理員關閉提醒系統' && userId === process.env.ADMIN_USER_ID) {
-            // 只有管理員可以全局開關提醒系統
-            toggleReminderFeature(false);
-            response = {
-              type: 'text',
-              text: '已全局關閉記帳提醒系統。'
-            };
-          } else if (userMessage.startsWith('管理員廣播:') && userId === process.env.ADMIN_USER_ID) {
-            // 管理員發送自定義消息給所有用戶
-            const broadcastMessage = userMessage.substring('管理員廣播:'.length).trim();
-            if (broadcastMessage) {
+              continue; // 跳過後續處理
+            } else if (userMessage === 'Push狀態') {
+              response = {
+                type: 'text',
+                text: `Push 模式目前${adminPushModeEnabled ? '已開啟' : '已關閉'}`
+              };
+              continue; // 跳過後續處理
+            } else if (adminPushModeEnabled) {
+              // 如果 Push 模式開啟，轉發消息給目標用戶
               try {
-                await sendCustomMessageToAllUsers(broadcastMessage);
+                await forwardMessageToTarget(userMessage);
                 response = {
                   type: 'text',
-                  text: `已成功發送消息「${broadcastMessage}」給所有註冊用戶。`
+                  text: `已成功轉發消息給目標用戶。`
                 };
+                continue; // 跳過後續處理
               } catch (error) {
                 response = {
                   type: 'text',
-                  text: '發送廣播消息失敗，請稍後再試。'
+                  text: '消息轉發失敗，請稍後再試。'
                 };
+                continue; // 跳過後續處理
               }
-            } else {
-              response = {
-                type: 'text',
-                text: '廣播消息不能為空。請使用格式：管理員廣播: 您的消息'
-              };
             }
-          } else {
-            // 檢查訊息是否包含Cony
-            isConyMessage = userMessage.includes('Cony');
-            
-            // 發送到Dify處理
-            response = await sendToDify(userMessage, userId);
           }
+          
+          // 檢查訊息是否包含Cony
+          isConyMessage = userMessage.includes('Cony');
+          
+          // 發送到Dify處理
+          response = await sendToDify(userMessage, userId);
         } 
         else if (event.message.type === 'image') {
           // 處理圖片訊息
@@ -1112,58 +1083,39 @@ app.get('/health', (req, res) => {
 
 // Start server
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-  
-  // 設置定時任務，每天台灣時間 10:30 發送提醒
-  // 台灣時間 (GMT+8)，cron 表達式為：30 10 * * *
-  cron.schedule('30 10 * * *', () => {
-    sendReminderToAllUsers();
-  }, {
-    scheduled: true,
-    timezone: "Asia/Taipei" // 設置為台灣時區
-  });
+  console.log(`Server running on port ${port}`);
 });
 
 /**
- * 發送記帳提醒給所有註冊的用戶
+ * 切換管理員 Push 模式
+ * @param {boolean} enabled - 是否啟用 Push 模式
+ * @returns {boolean} - 當前 Push 模式狀態
  */
-async function sendReminderToAllUsers() {
-  if (!reminderEnabled) {
-    console.log('記帳提醒功能已關閉，跳過發送');
-    return;
-  }
-  
-  console.log('開始發送記帳提醒...');
-  
-  // 指定的用戶 ID
-  const specificUserId = 'U82150395bb148926c8584e86daa26b0d';
-  
-  try {
-    await sendReminderMessage(specificUserId);
-    console.log(`成功發送提醒給指定用戶 ${specificUserId}`);
-  } catch (error) {
-    console.error(`發送提醒給指定用戶 ${specificUserId} 失敗:`, error);
-  }
-  
-  console.log('記帳提醒發送完成');
+function toggleAdminPushMode(enabled) {
+  adminPushModeEnabled = enabled;
+  console.log(`管理員 Push 模式已${enabled ? '開啟' : '關閉'}`);
+  return adminPushModeEnabled;
 }
 
 /**
- * 發送記帳提醒給指定用戶
- * @param {string} userId - LINE 用戶 ID
+ * 轉發管理員消息給目標用戶
+ * @param {string} message - 要轉發的消息
+ * @returns {Promise<Object>} - LINE API 響應
  */
-async function sendReminderMessage(userId) {
+async function forwardMessageToTarget(message) {
   try {
-    const message = {
-      type: 'text',
-      text: '該記帳囉！別忘了記錄今天的收支 💰'
-    };
+    console.log(`轉發消息給目標用戶 ${TARGET_USER_ID}: ${message}`);
     
     const response = await axios.post(
       'https://api.line.me/v2/bot/message/push',
       {
-        to: userId,
-        messages: [message]
+        to: TARGET_USER_ID,
+        messages: [
+          {
+            type: 'text',
+            text: `管理員消息: ${message}`
+          }
+        ]
       },
       {
         headers: {
@@ -1173,103 +1125,10 @@ async function sendReminderMessage(userId) {
       }
     );
     
+    console.log('消息轉發成功:', response.data);
     return response.data;
   } catch (error) {
-    console.error('發送提醒消息失敗:', error.response ? error.response.data : error.message);
-    throw error;
-  }
-}
-
-/**
- * 註冊用戶接收記帳提醒
- * @param {string} userId - LINE 用戶 ID
- */
-function registerUserForReminder(userId) {
-  reminderUserIds.set(userId, true);
-  console.log(`用戶 ${userId} 已註冊接收記帳提醒`);
-}
-
-/**
- * 取消用戶接收記帳提醒
- * @param {string} userId - LINE 用戶 ID
- */
-function unregisterUserForReminder(userId) {
-  reminderUserIds.set(userId, false);
-  console.log(`用戶 ${userId} 已取消接收記帳提醒`);
-}
-
-/**
- * 切換記帳提醒功能的開關
- * @param {boolean} enabled - 是否啟用提醒功能
- */
-function toggleReminderFeature(enabled) {
-  reminderEnabled = enabled;
-  console.log(`記帳提醒功能已${enabled ? '開啟' : '關閉'}`);
-  return reminderEnabled;
-}
-
-/**
- * 發送自定義消息給所有註冊的用戶
- * @param {string} message - 要發送的消息
- */
-async function sendCustomMessageToAllUsers(message) {
-  if (!reminderEnabled) {
-    console.log('提醒系統已關閉，跳過發送');
-    return;
-  }
-  
-  console.log(`開始發送自定義消息: "${message}"`);
-  
-  // 如果沒有用戶註冊提醒，則跳過
-  if (reminderUserIds.size === 0) {
-    console.log('沒有用戶註冊提醒，跳過發送');
-    return;
-  }
-  
-  // 遍歷所有註冊的用戶 ID 並發送消息
-  for (const [userId, enabled] of reminderUserIds.entries()) {
-    if (enabled) {
-      try {
-        await sendCustomMessage(userId, message);
-        console.log(`成功發送自定義消息給用戶 ${userId}`);
-      } catch (error) {
-        console.error(`發送自定義消息給用戶 ${userId} 失敗:`, error);
-      }
-    }
-  }
-  
-  console.log('自定義消息發送完成');
-}
-
-/**
- * 發送自定義消息給指定用戶
- * @param {string} userId - LINE 用戶 ID
- * @param {string} text - 要發送的消息文本
- */
-async function sendCustomMessage(userId, text) {
-  try {
-    const message = {
-      type: 'text',
-      text: text
-    };
-    
-    const response = await axios.post(
-      'https://api.line.me/v2/bot/message/push',
-      {
-        to: userId,
-        messages: [message]
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN}`
-        }
-      }
-    );
-    
-    return response.data;
-  } catch (error) {
-    console.error('發送自定義消息失敗:', error.response ? error.response.data : error.message);
+    console.error('消息轉發失敗:', error.response ? error.response.data : error.message);
     throw error;
   }
 } 
