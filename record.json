@@ -1,0 +1,151 @@
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "${category}",
+            "weight": "bold",
+            "color": "${pillColor}",
+            "size": "md",
+            "flex": 6,
+            "gravity": "center",
+            "offsetBottom": "2px"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "${pillText}",
+                "size": "sm",
+                "color": "#FFFFFF",
+                "align": "center",
+                "weight": "bold"
+              }
+            ],
+            "backgroundColor": "${pillColor}",
+            "cornerRadius": "20px",
+            "paddingAll": "5px",
+            "paddingStart": "${paddingStart}",
+            "paddingEnd": "${paddingEnd}",
+            "flex": "${isFixed ? 3 : 2}"
+          }
+        ],
+        "alignItems": "flex-end"
+      },
+      {
+        "type": "text",
+        "text": "$${amount}",
+        "size": "3xl",
+        "margin": "xs",
+        "wrap": true,
+        "weight": "bold"
+      },
+      {
+        "type": "separator",
+        "margin": "lg"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "margin": "lg",
+        "spacing": "md",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "備註",
+                "weight": "bold",
+                "size": "sm",
+                "color": "#555555",
+                "flex": 2
+              },
+              {
+                "type": "text",
+                "text": "${memo}",
+                "size": "sm",
+                "color": "#111111",
+                "align": "end",
+                "wrap": true,
+                "flex": 3
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "日期",
+                "weight": "bold",
+                "size": "sm",
+                "color": "#555555",
+                "flex": 2
+              },
+              {
+                "type": "text",
+                "text": "${datetime}",
+                "size": "sm",
+                "color": "#111111",
+                "align": "end",
+                "flex": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "separator",
+        "margin": "lg"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "margin": "lg",
+        "action": {
+          "type": "uri",
+          "label": "編輯",
+          "uri": "https://liff.line.me/2007052419-mZqnoGjP?recordId=${recordId}&type=${type}"
+        },
+        "contents": [
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "編輯",
+                "align": "center",
+                "color": "#666666",
+                "weight": "bold",
+                "size": "md"
+              }
+            ],
+            "backgroundColor": "#F5F5F5",
+            "cornerRadius": "md",
+            "paddingAll": "12px",
+            "width": "100%"
+          }
+        ]
+      }
+    ],
+    "paddingAll": "20px"
+  },
+  "styles": {
+    "body": {
+      "backgroundColor": "#FFFFFF"
+    }
+  }
+} 

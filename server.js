@@ -207,10 +207,43 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
     // Add Flex Messages if available
     if (processedMessage.flexMessages && processedMessage.flexMessages.length > 0) {
       processedMessage.flexMessages.forEach((flexMessage, index) => {
+        // Determine the appropriate altText based on the transaction type
+        let altText = "已為您記帳！";
+        
+        if (processedMessage.type === "income") {
+          altText = "已為您記錄收入！";
+        } else if (processedMessage.type === "expense") {
+          altText = "已為您記錄支出！";
+        }
+        
+        // Properly format the Flex Message with the required wrapper structure
         const flexMessageObj = {
           type: 'flex',
-          altText: `已為您記帳！`,
-          contents: flexMessage
+          altText: altText,
+          contents: flexMessage,
+          // 添加Quick Reply按鈕到Flex Message
+          quickReply: {
+            items: [
+              {
+                type: "action",
+                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838524/cost_icon_zn9vqm.png",
+                action: {
+                  type: "uri",
+                  label: "明細",
+                  uri: "https://liff.line.me/2007052419-6KyqOAoX"
+                }
+              },
+              {
+                type: "action",
+                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742024164/anylize_yopzz1.png",
+                action: {
+                  type: "uri",
+                  label: "分析",
+                  uri: "https://liff.line.me/2007052419-Br7KNJxo"
+                }
+              }
+            ]
+          }
         };
         messages.push(flexMessageObj);
         console.log(`Added Flex Message ${index + 1} to LINE response:`, JSON.stringify(flexMessageObj, null, 2));
@@ -426,169 +459,218 @@ function processDifyMessage(difyMessage) {
   const flexMessages = [];
   let remainingText = difyMessage;
   
-  // Extract record ID from the format [{"id":106}]
-  let recordId = null;
-  const idRegex = /\[\{"id":(\d+)\}\]/;
-  const idMatch = difyMessage.match(idRegex);
+  // Extract record IDs from the format [{"id":106}, {"id":107}]
+  let recordIds = [];
+  const idsRegex = /\[(\{"id":\d+\}(?:,\s*\{"id":\d+\})*)\]/;
+  const idsMatch = difyMessage.match(idsRegex);
   
-  if (idMatch) {
-    recordId = idMatch[1];
-    console.log('Extracted record ID:', recordId);
-    // Remove the ID part from the remaining text
-    remainingText = remainingText.replace(idMatch[0], '').trim();
-  }
-  
-  // Extract multiple JSON entries
-  // First, try to find all instances of the exact format with the new JSON structure (without item)
-  const exactFormatRegex = /以下是您本次的紀錄：\s*\n\{\s*\n\s*"category":\s*"([^"]+)",\s*\n\s*"amount":\s*(\d+),\s*\n\s*"memo":\s*"([^"]*)",\s*\n\s*"user_id":\s*"([^"]*)",\s*\n\s*"datetime":\s*"([^"]+)"\s*\n\s*\}/g;
-  
-  let exactMatch;
-  while ((exactMatch = exactFormatRegex.exec(difyMessage)) !== null) {
-    // Construct a clean JSON object from the matched groups
-    const jsonData = {
-      category: exactMatch[1],
-      amount: parseInt(exactMatch[2], 10),
-      memo: exactMatch[3],
-      user_id: exactMatch[4],
-      datetime: exactMatch[5],
-      record_id: recordId // Add the record ID to the data
-    };
-    
-    console.log('Extracted data using exact format match:', jsonData);
-    
-    // Create a Flex Message from the extracted data
-    const flexMessage = createFlexMessage(jsonData);
-    flexMessages.push(flexMessage);
-    
-    // Remove the matched part from the remaining text
-    remainingText = remainingText.replace(exactMatch[0], '').trim();
-  }
-  
-  // If we found exact matches, return them
-  if (flexMessages.length > 0) {
-    console.log(`Found ${flexMessages.length} exact format matches`);
-    return {
-      text: remainingText,
-      flexMessages: flexMessages,
-      recordId: recordId // Pass the record ID separately
-    };
-  }
-  
-  // If no exact matches were found, try other methods to find JSON
-  // Look for multiple JSON objects in code blocks
-  const codeBlockRegex = /```(?:json)?\n([\s\S]*?)\n```/g;
-  let codeBlockMatch;
-  
-  while ((codeBlockMatch = codeBlockRegex.exec(difyMessage)) !== null) {
+  if (idsMatch) {
     try {
-      const jsonString = codeBlockMatch[1];
-      console.log('Extracted JSON from code block:', jsonString);
-      
-      // Clean and parse the JSON
-      let normalizedJsonString = jsonString
-        .replace(/'/g, '"')
-        .replace(/\n\s*"/g, '"')
-        .replace(/"\n\s*/g, '"')
-        .replace(/,\s*}/g, '}');
-      
-      const jsonData = JSON.parse(normalizedJsonString);
-      // Add the record ID to the data
-      jsonData.record_id = recordId;
-      
-      console.log('Successfully parsed JSON data from code block:', JSON.stringify(jsonData, null, 2));
-      
-      // Create a Flex Message
-      const flexMessage = createFlexMessage(jsonData);
-      flexMessages.push(flexMessage);
-      
-      // Remove the matched part from the remaining text
-      remainingText = remainingText.replace(codeBlockMatch[0], '').trim();
+      // Parse the matched IDs into an array
+      const idsArray = JSON.parse(`[${idsMatch[1]}]`);
+      recordIds = idsArray.map(item => item.id);
+      console.log('Extracted record IDs:', recordIds);
+      // Remove the IDs part from the remaining text
+      remainingText = remainingText.replace(idsMatch[0], '').trim();
     } catch (error) {
-      console.error('Error parsing JSON from code block:', error);
+      console.error('Error parsing record IDs:', error);
     }
   }
   
-  // Look for multiple JSON objects in multiline format
-  if (remainingText.includes('{\n') && remainingText.includes('\n}')) {
-    // Try to find all instances of multiline JSON
-    const multilineRegex = /(\{\n[\s\S]*?\n\})/g;
-    let multilineMatch;
+  // Extract transaction type from the format [{"type": "expense"}] or [{"type": "income"}]
+  let transactionType = "expense"; // Default to expense if not specified
+  const typeRegex = /\[\{"type":\s*"([^"]+)"\}\]/;
+  const typeMatch = difyMessage.match(typeRegex);
+  
+  if (typeMatch) {
+    transactionType = typeMatch[1];
+    console.log('Extracted transaction type:', transactionType);
+    // Remove the type part from the remaining text and any trailing commas
+    remainingText = remainingText.replace(typeMatch[0], '').replace(/,\s*$/, '').trim();
+  }
+
+  // Try to find JSON in code blocks first (for multi-record)
+  const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/g;
+  let codeBlockMatch;
+  let foundJsonInCodeBlock = false;
+  
+  while ((codeBlockMatch = codeBlockRegex.exec(remainingText)) !== null) {
+    const codeContent = codeBlockMatch[1].trim();
+    console.log('Found code block content:', codeContent);
     
-    while ((multilineMatch = multilineRegex.exec(remainingText)) !== null) {
+    // Check if it's a JSON array
+    if (codeContent.startsWith('[') && codeContent.endsWith(']')) {
       try {
-        const jsonString = multilineMatch[1];
-        console.log('Extracted JSON from multiline format:', jsonString);
+        const jsonArray = JSON.parse(codeContent);
+        console.log('Found JSON array in code block with', jsonArray.length, 'records');
+        foundJsonInCodeBlock = true;
         
-        // Clean and parse the JSON
-        let normalizedJsonString = jsonString
-          .replace(/'/g, '"')
-          .replace(/\n\s*"/g, '"')
-          .replace(/"\n\s*/g, '"')
-          .replace(/,\s*}/g, '}');
+        // Process each record in the array
+        jsonArray.forEach((record, index) => {
+          // Add record ID and transaction type to each record
+          const recordWithId = {
+            ...record,
+            record_id: recordIds[index] || '',
+            type: transactionType
+          };
+          
+          // If is_fixed is not present, set a default value
+          if (recordWithId.is_fixed === undefined) {
+            recordWithId.is_fixed = false;
+          }
+
+          // Create a Flex Message for this record
+          const flexMessage = createFlexMessage(recordWithId);
+          flexMessages.push(flexMessage);
+        });
         
-        const jsonData = JSON.parse(normalizedJsonString);
-        // Add the record ID to the data
-        jsonData.record_id = recordId;
+        // Remove the entire code block from the remaining text
+        remainingText = remainingText.replace(codeBlockMatch[0], '').trim();
+      } catch (error) {
+        console.error('Error parsing JSON array in code block:', error);
+      }
+    } 
+    // Check if it's a single JSON object
+    else if (codeContent.startsWith('{') && codeContent.endsWith('}')) {
+      try {
+        const jsonObject = JSON.parse(codeContent);
+        console.log('Found single JSON object in code block:', jsonObject);
+        foundJsonInCodeBlock = true;
         
-        console.log('Successfully parsed JSON data from multiline format:', JSON.stringify(jsonData, null, 2));
+        // Add record ID and transaction type to the record
+        const recordWithId = {
+          ...jsonObject,
+          record_id: recordIds[0] || '',
+          type: transactionType
+        };
         
-        // Create a Flex Message
-        const flexMessage = createFlexMessage(jsonData);
+        // If is_fixed is not present, set a default value
+        if (recordWithId.is_fixed === undefined) {
+          recordWithId.is_fixed = false;
+        }
+
+        // Create a Flex Message for this record
+        const flexMessage = createFlexMessage(recordWithId);
         flexMessages.push(flexMessage);
         
-        // Remove the matched part from the remaining text
-        remainingText = remainingText.replace(multilineMatch[0], '').trim();
+        // Remove the entire code block from the remaining text
+        remainingText = remainingText.replace(codeBlockMatch[0], '').trim();
       } catch (error) {
-        console.error('Error parsing JSON from multiline format:', error);
+        console.error('Error parsing JSON object in code block:', error);
       }
     }
   }
   
-  // Look for multiple JSON objects in curly braces
-  const curlyBracesRegex = /(\{[^{}]*\})/g;
-  let curlyBracesMatch;
-  
-  while ((curlyBracesMatch = curlyBracesRegex.exec(remainingText)) !== null) {
-    const potentialJson = curlyBracesMatch[1];
-    
-    // Check if this looks like a valid JSON object for our use case
-    if (potentialJson.includes('"category"') || potentialJson.includes('"amount"') || 
-        potentialJson.includes("'category'") || potentialJson.includes("'amount'")) {
+  // If we didn't find JSON in code blocks, try other methods
+  if (!foundJsonInCodeBlock) {
+    // Try to find a JSON array directly in the text
+    const jsonArrayRegex = /\[\s*\{\s*"category"[\s\S]*?\}\s*\]/;
+    const jsonArrayMatch = remainingText.match(jsonArrayRegex);
+
+    if (jsonArrayMatch) {
       try {
-        console.log('Extracted JSON from curly braces:', potentialJson);
-        
-        // Clean and parse the JSON
-        let normalizedJsonString = potentialJson
-          .replace(/'/g, '"')
-          .replace(/\n\s*"/g, '"')
-          .replace(/"\n\s*/g, '"')
-          .replace(/,\s*}/g, '}');
-        
-        const jsonData = JSON.parse(normalizedJsonString);
-        // Add the record ID to the data
-        jsonData.record_id = recordId;
-        
-        console.log('Successfully parsed JSON data from curly braces:', JSON.stringify(jsonData, null, 2));
-        
-        // Create a Flex Message
-        const flexMessage = createFlexMessage(jsonData);
-        flexMessages.push(flexMessage);
-        
-        // Remove the matched part from the remaining text
-        remainingText = remainingText.replace(potentialJson, '').trim();
+        // Parse the JSON array
+        const jsonArray = JSON.parse(jsonArrayMatch[0]);
+        console.log('Found JSON array with', jsonArray.length, 'records');
+
+        // Process each record in the array
+        jsonArray.forEach((record, index) => {
+          // Add record ID and transaction type to each record
+          const recordWithId = {
+            ...record,
+            record_id: recordIds[index] || '',
+            type: transactionType
+          };
+          
+          // If is_fixed is not present, set a default value
+          if (recordWithId.is_fixed === undefined) {
+            recordWithId.is_fixed = false;
+          }
+
+          // Create a Flex Message for this record
+          const flexMessage = createFlexMessage(recordWithId);
+          flexMessages.push(flexMessage);
+        });
+
+        // Remove the JSON array from the remaining text
+        remainingText = remainingText.replace(jsonArrayMatch[0], '').trim();
       } catch (error) {
-        console.error('Error parsing JSON from curly braces:', error);
+        console.error('Error parsing JSON array:', error);
+      }
+    } else {
+      // Try to find a single JSON object in curly braces
+      const jsonObjectRegex = /\{\s*"(?:user_id|category)"[\s\S]*?\}/;
+      const jsonObjectMatch = remainingText.match(jsonObjectRegex);
+      
+      if (jsonObjectMatch) {
+        try {
+          const jsonData = JSON.parse(jsonObjectMatch[0]);
+          // Add record ID and transaction type
+          jsonData.record_id = recordIds[0] || '';
+          jsonData.type = transactionType;
+          
+          // If is_fixed is not present, set a default value
+          if (jsonData.is_fixed === undefined) {
+            jsonData.is_fixed = false;
+          }
+          
+          console.log('Successfully parsed JSON data:', JSON.stringify(jsonData, null, 2));
+          
+          // Create a Flex Message
+          const flexMessage = createFlexMessage(jsonData);
+          flexMessages.push(flexMessage);
+          
+          // Remove the matched part from the remaining text
+          remainingText = remainingText.replace(jsonObjectMatch[0], '').trim();
+        } catch (error) {
+          console.error('Error parsing JSON object:', error);
+        }
+      } else {
+        // Try the exact format match as a last resort
+        const exactFormatRegex = /以下是您本次的紀錄：\s*\n\{\s*\n\s*"category":\s*"([^"]+)",\s*\n\s*"amount":\s*(\d+),\s*\n\s*"memo":\s*"([^"]*)",\s*\n\s*"is_fixed":\s*(true|false),\s*\n\s*"user_id":\s*"([^"]*)",\s*\n\s*"datetime":\s*"([^"]+)"\s*\n\s*\}/;
+        const exactMatch = remainingText.match(exactFormatRegex);
+        
+        if (exactMatch) {
+          // Construct a clean JSON object from the matched groups
+          const jsonData = {
+            category: exactMatch[1],
+            amount: parseInt(exactMatch[2], 10),
+            memo: exactMatch[3],
+            is_fixed: exactMatch[4] === 'true',
+            user_id: exactMatch[5],
+            datetime: exactMatch[6],
+            record_id: recordIds[0] || '', // Add the first record ID to the data
+            type: transactionType // Add the transaction type to the data
+          };
+          
+          console.log('Extracted data using exact format match:', jsonData);
+          
+          // Create a Flex Message from the extracted data
+          const flexMessage = createFlexMessage(jsonData);
+          flexMessages.push(flexMessage);
+          
+          // Remove the matched part from the remaining text
+          remainingText = remainingText.replace(exactMatch[0], '').trim();
+        }
       }
     }
   }
-  
+
   // If we found any JSON objects, return them
   if (flexMessages.length > 0) {
     console.log(`Found ${flexMessages.length} JSON objects in total`);
+    // Clean up remaining text by removing trailing commas, extra whitespace and any remaining ```json``` markers
+    remainingText = remainingText
+      .replace(/,\s*$/, '')
+      .replace(/```json\s*```/g, '')
+      .replace(/```\s*```/g, '')
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
     return {
       text: remainingText,
       flexMessages: flexMessages,
-      recordId: recordId // Pass the record ID separately
+      type: transactionType
     };
   }
   
@@ -597,7 +679,7 @@ function processDifyMessage(difyMessage) {
   return {
     text: difyMessage,
     flexMessages: [],
-    recordId: recordId // Pass the record ID separately
+    type: transactionType
   };
 }
 
@@ -606,124 +688,60 @@ function createFlexMessage(data) {
   console.log('Creating Flex Message with data:', JSON.stringify(data, null, 2));
   
   try {
-    // 直接創建一個符合LINE規範的Flex Message結構，而不是使用模板
-    const flexMessage = {
-      type: "bubble",
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          {
-            type: "box",
-            layout: "horizontal",
-            contents: [
-              {
-                type: "text",
-                text: data.category || "未分類",
-                weight: "bold",
-                color: "#1DB446",
-                size: "md",
-                flex: 6,
-                gravity: "center",
-                offsetBottom: "2px"
-              },
-              {
-                type: "box",
-                layout: "horizontal",
-                contents: [
-                  {
-                    type: "text",
-                    text: "支出",
-                    size: "sm",
-                    color: "#FFFFFF",
-                    align: "center",
-                    weight: "bold"
-                  }
-                ],
-                backgroundColor: "#1DB446",
-                cornerRadius: "20px",
-                paddingAll: "5px",
-                paddingStart: "0px",
-                paddingEnd: "0px",
-                flex: 2
-              }
-            ],
-            alignItems: "flex-end"
-          },
-          {
-            type: "text",
-            text: `$${data.amount}`,
-            size: "3xl",
-            margin: "xs",
-            wrap: true,
-            weight: "bold"
-          },
-          {
-            type: "separator",
-            margin: "lg"
-          },
-          {
-            type: "box",
-            layout: "vertical",
-            margin: "lg",
-            spacing: "md",
-            contents: [
-              {
-                type: "box",
-                layout: "horizontal",
-                contents: [
-                  {
-                    type: "text",
-                    text: "備註",
-                    weight: "bold",
-                    size: "sm",
-                    color: "#555555",
-                    flex: 2
-                  },
-                  {
-                    type: "text",
-                    text: data.memo || "無備註",
-                    size: "sm",
-                    color: "#111111",
-                    align: "end",
-                    wrap: true,
-                    flex: 3
-                  }
-                ]
-              },
-              {
-                type: "box",
-                layout: "horizontal",
-                contents: [
-                  {
-                    type: "text",
-                    text: "日期",
-                    weight: "bold",
-                    size: "sm",
-                    color: "#555555",
-                    flex: 2
-                  },
-                  {
-                    type: "text",
-                    text: data.datetime || new Date().toISOString().split('T')[0],
-                    size: "sm",
-                    color: "#111111",
-                    align: "end",
-                    flex: 3
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        paddingAll: "20px"
-      },
-      styles: {
-        body: {
-          backgroundColor: "#FFFFFF"
-        }
+    // Determine the pill/capsule text and color based on type and is_fixed
+    let pillText = "支出";
+    let pillColor = "#1DB446"; // Green for expense
+    // Default padding values for non-fixed types
+    let paddingStart = "0px";
+    let paddingEnd = "0px";
+    
+    if (data.type === "income") {
+      if (data.is_fixed) {
+        pillText = "固定收入";
+        pillColor = "#4A90E2"; // Blue for fixed income
+        // Wider padding for fixed income
+        paddingStart = "8px";
+        paddingEnd = "8px";
+      } else {
+        pillText = "收入";
+        pillColor = "#2D9CDB"; // Light blue for income
       }
-    };
+    } else { // expense
+      if (data.is_fixed) {
+        pillText = "固定支出";
+        pillColor = "#EB5757"; // Red for fixed expense
+        // Wider padding for fixed expense
+        paddingStart = "8px";
+        paddingEnd = "8px";
+      } else {
+        pillText = "支出";
+        pillColor = "#1DB446"; // Green for expense
+      }
+    }
+    
+    // Load the template from record.json
+    const fs = require('fs');
+    const path = require('path');
+    const templatePath = path.join(__dirname, 'record.json');
+    const templateString = fs.readFileSync(templatePath, 'utf8');
+    
+    // Replace placeholders with actual values
+    let flexMessageString = templateString
+      .replace('${category}', data.category || "未分類")
+      .replace(/\${pillColor}/g, pillColor)
+      .replace('${pillText}', pillText)
+      .replace('${paddingStart}', paddingStart)
+      .replace('${paddingEnd}', paddingEnd)
+      .replace('"flex": "${isFixed ? 3 : 2}"', `"flex": ${data.is_fixed ? 3 : 2}`)
+      .replace('${amount}', data.amount)
+      .replace('${memo}', data.memo || "無備註")
+      .replace('${datetime}', data.datetime || new Date().toISOString().split('T')[0])
+      .replace('${liffId}', process.env.LIFF_ID)
+      .replace('${recordId}', data.record_id || '')
+      .replace('${type}', data.type || 'expense'); // Add type parameter for the edit button
+    
+    // Parse the string back to JSON
+    const flexMessage = JSON.parse(flexMessageString);
     
     console.log('Created Flex Message structure:', JSON.stringify(flexMessage, null, 2));
     return flexMessage;
@@ -740,7 +758,7 @@ function createFlexMessage(data) {
             type: "text",
             text: data.category || "未分類",
             weight: "bold",
-            color: "#1DB446",
+            color: pillColor || "#1DB446",
             size: "sm"
           },
           {
@@ -929,7 +947,29 @@ function createMessagesFromResponse(response, isConyMessage = false) {
   const processedMessage = processDifyMessage(messageText);
   const messages = [];
 
-  // Add text message if there's text content
+  // Add Flex Messages first if there are any
+  if (processedMessage.flexMessages && processedMessage.flexMessages.length > 0) {
+    processedMessage.flexMessages.forEach((flexMessage, index) => {
+      // Determine the appropriate altText based on the transaction type
+      let altText = "已為您記帳！";
+      
+      if (processedMessage.type === "income") {
+        altText = "已為您記錄收入！";
+      } else if (processedMessage.type === "expense") {
+        altText = "已為您記錄支出！";
+      }
+      
+      // Properly format the Flex Message with the required wrapper structure
+      const flexMessageObj = {
+        type: 'flex',
+        altText: altText,
+        contents: flexMessage
+      };
+      messages.push(flexMessageObj);
+    });
+  }
+
+  // Then add text message if there's text content
   if (processedMessage.text && processedMessage.text.trim() !== '') {
     const textMessageObj = {
       type: 'text',
@@ -947,73 +987,36 @@ function createMessagesFromResponse(response, isConyMessage = false) {
     messages.push(textMessageObj);
   }
 
-  // Add Flex Messages if there are any
-  if (processedMessage.flexMessages && processedMessage.flexMessages.length > 0) {
-    processedMessage.flexMessages.forEach((flexMessage, index) => {
-      // Properly format the Flex Message with the required wrapper structure
-      const flexMessageObj = {
-        type: 'flex',
-        altText: `已為您記帳！`,
-        contents: flexMessage
-      };
-      messages.push(flexMessageObj);
-    });
-    
-    // Add a separate text message for the record ID if available
-    if (processedMessage.recordId) {
-      const idMessageObj = {
-        type: 'text',
-        text: `您的記帳編號是: ${processedMessage.recordId}`,
-        // 添加Quick Reply按鈕，用於編輯帳單
-        quickReply: {
-          items: [
-            {
-              type: "action",
-              imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838055/edit_icon_paq8p0.png",
-              action: {
-                type: "uri",
-                label: "編輯帳單",
-                uri: `https://liff.line.me/${process.env.LIFF_ID}?recordId=${processedMessage.recordId}`
-              }
-            },
-            {
-              type: "action",
-              imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838524/cost_icon_zn9vqm.png",
-              action: {
-                type: "message",
-                label: "消費狀況",
-                text: "查看我的消費狀況"
-              }
-            },
-            {
-              type: "action",
-              imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838529/goal_icon_ym4xf2.png",
-              action: {
-                type: "message",
-                label: "目標進度",
-                text: "查看我的目標進度"
-              }
-            }
-          ]
-        }
-      };
-      
-      // 如果是Cony訊息，添加sender信息
-      if (isConyMessage) {
-        idMessageObj.sender = {
-          name: "Cony",
-          iconUrl: "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8"
-        };
-      }
-      
-      messages.push(idMessageObj);
-    }
-  }
-
   // 確保訊息數量不超過LINE的限制（5個）
   if (messages.length > 5) {
     console.log(`訊息數量超過LINE限制，截斷至5個訊息`);
     messages.splice(5);
+  }
+
+  // Add Quick Reply to the last message
+  if (messages.length > 0) {
+    messages[messages.length - 1].quickReply = {
+      items: [
+        {
+          type: "action",
+          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838524/cost_icon_zn9vqm.png",
+          action: {
+            type: "uri",
+            label: "明細",
+            uri: "https://liff.line.me/2007052419-6KyqOAoX"
+          }
+        },
+        {
+          type: "action",
+          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742024164/anylize_yopzz1.png",
+          action: {
+            type: "uri",
+            label: "分析",
+            uri: "https://liff.line.me/2007052419-Br7KNJxo"
+          }
+        }
+      ]
+    };
   }
 
   // 檢查每個訊息的結構是否符合LINE的規範
