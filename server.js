@@ -235,7 +235,7 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
                 action: {
                   type: "uri",
                   label: "明細",
-                  uri: "https://liff.line.me/2007052419-6KyqOAoX"
+                  uri: "https://line-liff-xi.vercel.app/"
                 }
               },
               {
@@ -244,7 +244,7 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
                 action: {
                   type: "uri",
                   label: "分析",
-                  uri: "https://liff.line.me/2007052419-Br7KNJxo"
+                  uri: "https://line-liff-xi.vercel.app/analyse"
                 }
               }
             ]
@@ -1050,7 +1050,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
           action: {
             type: "uri",
             label: "明細",
-            uri: "https://liff.line.me/2007052419-6KyqOAoX"
+            uri: "https://line-liff-xi.vercel.app/"
           }
         },
         {
@@ -1059,7 +1059,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
           action: {
             type: "uri",
             label: "分析",
-            uri: "https://liff.line.me/2007052419-Br7KNJxo"
+            uri: "https://line-liff-xi.vercel.app/analyse"
           }
         }
       ]
