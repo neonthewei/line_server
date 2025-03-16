@@ -231,7 +231,7 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
             items: [
               {
                 type: "action",
-                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838524/cost_icon_zn9vqm.png",
+                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742122439/icon1_fqhkfr.png",
                 action: {
                   type: "uri",
                   label: "明細",
@@ -240,7 +240,7 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
               },
               {
                 type: "action",
-                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742024164/anylize_yopzz1.png",
+                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742122448/icon2_m7gmrh.png",
                 action: {
                   type: "uri",
                   label: "分析",
@@ -249,7 +249,7 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
               },
               {
                 type: "action",
-                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742111921/me_icon_hyqa6a.png",
+                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742122452/icon3_d46jgx.png",
                 action: {
                   type: "uri",
                   label: "我的",
@@ -1256,7 +1256,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
       items: [
         {
           type: "action",
-          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838524/cost_icon_zn9vqm.png",
+          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742122439/icon1_fqhkfr.png",
           action: {
             type: "uri",
             label: "明細",
@@ -1265,7 +1265,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
         },
         {
           type: "action",
-          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742024164/anylize_yopzz1.png",
+          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742122448/icon2_m7gmrh.png",
           action: {
             type: "uri",
             label: "分析",
@@ -1274,7 +1274,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
         },
         {
           type: "action",
-          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742111921/me_icon_hyqa6a.png",
+          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742122452/icon3_d46jgx.png",
           action: {
             type: "uri",
             label: "我的",
