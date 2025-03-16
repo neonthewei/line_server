@@ -246,6 +246,24 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
                   label: "分析",
                   uri: "https://line-liff-xi.vercel.app/analyse"
                 }
+              },
+              {
+                type: "action",
+                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838529/goal_icon_ym4xf2.png",
+                action: {
+                  type: "uri",
+                  label: "預算",
+                  uri: "https://line-liff-xi.vercel.app/budget"
+                }
+              },
+              {
+                type: "action",
+                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742111921/me_icon_hyqa6a.png",
+                action: {
+                  type: "uri",
+                  label: "我的",
+                  uri: "https://line-liff-xi.vercel.app/profile"
+                }
               }
             ]
           }
@@ -1060,6 +1078,24 @@ function createMessagesFromResponse(response, isConyMessage = false) {
             type: "uri",
             label: "分析",
             uri: "https://line-liff-xi.vercel.app/analyse"
+          }
+        },
+        {
+          type: "action",
+          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838529/goal_icon_ym4xf2.png",
+          action: {
+            type: "uri",
+            label: "預算",
+            uri: "https://line-liff-xi.vercel.app/budget"
+          }
+        },
+        {
+          type: "action",
+          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742111921/me_icon_hyqa6a.png",
+          action: {
+            type: "uri",
+            label: "我的",
+            uri: "https://line-liff-xi.vercel.app/profile"
           }
         }
       ]
