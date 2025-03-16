@@ -249,15 +249,6 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
               },
               {
                 type: "action",
-                imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838529/goal_icon_ym4xf2.png",
-                action: {
-                  type: "uri",
-                  label: "預算",
-                  uri: "https://line-liff-xi.vercel.app/budget"
-                }
-              },
-              {
-                type: "action",
                 imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742111921/me_icon_hyqa6a.png",
                 action: {
                   type: "uri",
@@ -470,6 +461,63 @@ async function uploadImageToCloudinary(imageBuffer) {
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);
     throw error;
+  }
+}
+
+// Upload audio to Cloudinary and get URL
+async function uploadAudioToCloudinary(audioBuffer) {
+  try {
+    console.log('Uploading audio to Cloudinary...');
+    // Convert buffer to base64
+    const base64Audio = audioBuffer.toString('base64');
+    
+    // Upload to Cloudinary with public access settings
+    // Use the correct audio/m4a MIME type
+    const result = await cloudinary.uploader.upload(`data:audio/m4a;base64,${base64Audio}`, {
+      folder: 'line-bot-audio',
+      resource_type: 'auto',
+      public_id: `line_audio_${Date.now()}`, // 確保唯一的文件名
+      access_mode: 'public', // 確保公開訪問
+      overwrite: true
+    });
+
+    console.log('Audio uploaded to Cloudinary:', result.secure_url);
+    return result.secure_url;
+  } catch (error) {
+    console.error('Error uploading audio to Cloudinary:', error);
+    throw error;
+  }
+}
+
+// Convert audio to text using Dify's audio-to-text API with Cloudinary URL
+async function convertAudioToTextWithUrl(audioUrl, userId) {
+  console.log('Converting audio to text using Dify API with URL');
+  
+  try {
+    console.log('Sending audio URL to Dify audio-to-text API:', audioUrl);
+    
+    // Use child_process to execute curl command directly
+    // This ensures the exact format required by the API
+    const { execSync } = require('child_process');
+    const curlCommand = `curl -X POST 'https://api.dify.ai/v1/audio-to-text' \
+      -H 'Authorization: Bearer ${process.env.DIFY_API_KEY}' \
+      -H 'Content-Type: application/json' \
+      -d '{"audio_url": "${audioUrl}", "user": "${userId}"}'`;
+    
+    console.log('Executing curl command:', curlCommand);
+    
+    const result = execSync(curlCommand).toString();
+    console.log('Curl command result:', result);
+    
+    // Parse the result as JSON
+    const response = JSON.parse(result);
+    
+    // Return the transcribed text
+    return response.text || '';
+    
+  } catch (error) {
+    console.error('Error converting audio to text with URL:', error.message);
+    throw new Error('Failed to convert audio to text with URL');
   }
 }
 
@@ -815,6 +863,108 @@ function createFlexMessage(data) {
   }
 }
 
+// Convert audio to text using Dify's audio-to-text API
+async function convertAudioToText(audioBuffer, userId) {
+  console.log('Converting audio to text using Dify API');
+  
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Create a temporary file path with the correct M4A extension
+    const tempFilePath = `./temp_audio_${userId}_${Date.now()}.m4a`;
+    
+    // Write the audio buffer to a temporary file
+    fs.writeFileSync(tempFilePath, audioBuffer);
+    console.log(`Saved audio to temporary file: ${tempFilePath}`);
+    
+    // Use axios to send a multipart/form-data request
+    // Create form data manually to match the expected format
+    const FormData = require('form-data');
+    const form = new FormData();
+    
+    // Add the file to the form data
+    const fileStream = fs.createReadStream(tempFilePath);
+    form.append('file', fileStream);
+    
+    console.log('Sending audio to Dify audio-to-text API');
+    
+    // Use child_process to execute curl command directly
+    // This ensures the exact format required by the API
+    const { execSync } = require('child_process');
+    const curlCommand = `curl -X POST 'https://api.dify.ai/v1/audio-to-text' \
+      -H 'Authorization: Bearer ${process.env.DIFY_API_KEY}' \
+      -F 'file=@${tempFilePath};type=audio/m4a' \
+      -F 'user=${userId}'`;
+    
+    console.log('Executing curl command:', curlCommand);
+    
+    const result = execSync(curlCommand).toString();
+    console.log('Curl command result:', result);
+    
+    // Parse the result as JSON
+    const response = JSON.parse(result);
+    
+    // Clean up the temporary file
+    fs.unlinkSync(tempFilePath);
+    console.log(`Deleted temporary file: ${tempFilePath}`);
+    
+    // Return the transcribed text
+    return response.text || '';
+    
+  } catch (error) {
+    console.error('Error converting audio to text:', error.message);
+    throw new Error('Failed to convert audio to text');
+  }
+}
+
+// 使用 OpenAI Whisper API 進行語音轉文字
+async function convertAudioToTextWithWhisper(audioBuffer, userId) {
+  console.log('Converting audio to text using OpenAI Whisper API');
+  
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    
+    // 創建臨時文件
+    const tempFilePath = `./temp_audio_${userId}_${Date.now()}.m4a`;
+    fs.writeFileSync(tempFilePath, audioBuffer);
+    console.log(`Saved audio to temporary file: ${tempFilePath}`);
+    
+    // 使用 curl 命令調用 OpenAI Whisper API
+    // 添加 language 參數指定為繁體中文 (zh-TW)
+    // 添加 response_format=text 參數以獲取純文本
+    const { execSync } = require('child_process');
+    const curlCommand = `curl -X POST https://api.openai.com/v1/audio/transcriptions \
+      -H "Authorization: Bearer ${process.env.OPENAI_API_KEY}" \
+      -H "Content-Type: multipart/form-data" \
+      -F file=@${tempFilePath} \
+      -F model="whisper-1" \
+      -F language="zh" \
+      -F response_format="text"`;
+    
+    console.log('Executing curl command for Whisper API');
+    
+    const result = execSync(curlCommand).toString();
+    console.log('Whisper API result:', result);
+    
+    // 由於我們使用了 response_format=text，結果已經是文本而不是 JSON
+    // 不需要解析 JSON
+    const transcribedText = result.trim();
+    
+    // 清理臨時文件
+    fs.unlinkSync(tempFilePath);
+    console.log(`Deleted temporary file: ${tempFilePath}`);
+    
+    // 返回轉錄文本
+    return transcribedText || '';
+    
+  } catch (error) {
+    console.error('Error converting audio to text with Whisper:', error.message);
+    throw new Error('Failed to convert audio to text with Whisper');
+  }
+}
+
 // Webhook endpoint
 app.post('/webhook', verifyLineSignature, async (req, res) => {
   try {
@@ -913,15 +1063,58 @@ app.post('/webhook', verifyLineSignature, async (req, res) => {
             response = '抱歉，處理圖片時發生錯誤';
           }
         }
+        else if (event.message.type === 'audio') {
+          // 處理語音訊息
+          console.log('Received audio message');
+          console.log('Audio message details:', {
+            id: event.message.id,
+            duration: event.message.duration,
+            contentProvider: event.message.contentProvider
+          });
+          
+          try {
+            // 1. 從LINE獲取語音內容
+            const audioContent = await getLineContent(event.message.id);
+            console.log('Audio content received, size:', Buffer.byteLength(audioContent), 'bytes');
+            console.log('Audio content type:', typeof audioContent);
+            
+            // 2. 使用 OpenAI Whisper API 進行語音轉文字
+            const transcribedText = await convertAudioToTextWithWhisper(audioContent, userId);
+            console.log('Transcribed text:', transcribedText);
+            
+            // 3. 如果成功轉換為文字，發送到Dify處理
+            if (transcribedText) {
+              // 直接發送轉換後的文字到Dify處理，不先回覆用戶
+              const difyResponse = await sendToDify(transcribedText, userId);
+              
+              // 創建一個包含轉錄文字的響應對象
+              response = {
+                text: difyResponse,
+                userId: userId,
+                transcribedText: transcribedText // 添加轉錄文字
+              };
+            } else {
+              response = '抱歉，無法識別您的語音訊息，請再試一次。';
+            }
+          } catch (error) {
+            console.error('Error processing audio:', error);
+            response = '抱歉，處理語音訊息時發生錯誤';
+          }
+        }
         
         // 回覆用戶
         if (response) {
           try {
-            // Add userId to the response object for use in push messages if needed
-            const responseWithUserId = {
-              text: response,
-              userId: userId
-            };
+            // 確保 responseWithUserId 是一個對象
+            let responseWithUserId;
+            if (typeof response === 'object') {
+              responseWithUserId = response;
+            } else {
+              responseWithUserId = {
+                text: response,
+                userId: userId
+              };
+            }
             
             // 創建訊息
             const messages = createMessagesFromResponse(responseWithUserId, isConyMessage);
@@ -951,54 +1144,23 @@ app.post('/webhook', verifyLineSignature, async (req, res) => {
               }
             );
             
-            console.log('Successfully sent push message to LINE:', {
-              status: pushResponse.status,
-              statusText: pushResponse.statusText,
-              data: pushResponse.data
-            });
+            console.log('LINE push response:', pushResponse.status);
           } catch (error) {
-            console.error('Error sending message to LINE:', {
-              error: error.response?.data || error.message,
-              status: error.response?.status,
-              details: error.response?.data?.details || 'No details available'
-            });
-            
-            // 嘗試發送簡單的文字訊息作為備用
-            try {
-              await axios.post(
-                'https://api.line.me/v2/bot/message/push',
-                {
-                  to: userId,
-                  messages: [{
-                    type: 'text',
-                    text: '抱歉，在處理您的請求時發生錯誤。我們已記錄您的記帳資訊，但無法顯示詳細資訊。'
-                  }]
-                },
-                {
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.LINE_ACCESS_TOKEN}`
-                  }
-                }
-              );
-              console.log('Successfully sent fallback message');
-            } catch (fallbackError) {
-              console.error('Error sending fallback message:', fallbackError.message);
-            }
+            console.error('Error sending message to LINE:', error.response?.data || error.message);
           }
         }
-
-        // 標記事件為已處理
-        if (event.webhookEventId) {
-          processedEvents.add(event.webhookEventId);
-        }
+      }
+      
+      // 將已處理的事件ID添加到集合中
+      if (event.webhookEventId) {
+        processedEvents.add([event.webhookEventId, Date.now()]);
       }
     }
-
-    res.status(200).send('OK');
+    
+    res.status(200).end();
   } catch (error) {
     console.error('Error processing webhook:', error);
-    res.status(500).send('Internal Server Error');
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -1007,12 +1169,42 @@ function createMessagesFromResponse(response, isConyMessage = false) {
   // Extract userId and text from message if it's an object
   const userId = typeof response === 'object' ? response.userId : null;
   const messageText = typeof response === 'object' ? response.text : response;
+  const transcribedText = typeof response === 'object' ? response.transcribedText : null;
   
   // Process the message to check for JSON content that should be a Flex Message
   const processedMessage = processDifyMessage(messageText);
   const messages = [];
 
-  // Add Flex Messages first if there are any
+  // 如果有轉錄文字，添加一個綠色背景的 Flex Message 到消息數組的最前面
+  if (transcribedText) {
+    const transcriptionFlexMessage = {
+      type: 'flex',
+      altText: '語音訊息內容',
+      contents: {
+        type: 'bubble',
+        size: 'kilo',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: `：${transcribedText}`,
+              wrap: true,
+              color: '#FFFFFF',
+              size: 'md'
+            }
+          ],
+          backgroundColor: '#1DB446',
+          paddingAll: '12px',
+          cornerRadius: '8px'
+        }
+      }
+    };
+    messages.push(transcriptionFlexMessage);
+  }
+
+  // Add Flex Messages if there are any
   if (processedMessage.flexMessages && processedMessage.flexMessages.length > 0) {
     processedMessage.flexMessages.forEach((flexMessage, index) => {
       // Determine the appropriate altText based on the transaction type
@@ -1078,15 +1270,6 @@ function createMessagesFromResponse(response, isConyMessage = false) {
             type: "uri",
             label: "分析",
             uri: "https://line-liff-xi.vercel.app/analyse"
-          }
-        },
-        {
-          type: "action",
-          imageUrl: "https://res.cloudinary.com/dt7pnivs1/image/upload/v1741838529/goal_icon_ym4xf2.png",
-          action: {
-            type: "uri",
-            label: "預算",
-            uri: "https://line-liff-xi.vercel.app/budget"
           }
         },
         {
