@@ -923,44 +923,55 @@ async function convertAudioToTextWithWhisper(audioBuffer, userId) {
   console.log('Converting audio to text using OpenAI Whisper API');
   
   try {
-    const fs = require('fs');
-    const path = require('path');
+    // 使用 FormData 和 axios 直接發送請求，不寫入文件系統
+    const FormData = require('form-data');
+    const axios = require('axios');
     
-    // 創建臨時文件
-    const tempFilePath = `./temp_audio_${userId}_${Date.now()}.m4a`;
-    fs.writeFileSync(tempFilePath, audioBuffer);
-    console.log(`Saved audio to temporary file: ${tempFilePath}`);
+    // 創建 FormData 對象
+    const formData = new FormData();
     
-    // 使用 curl 命令調用 OpenAI Whisper API
-    // 添加 language 參數指定為繁體中文 (zh-TW)
-    // 添加 response_format=text 參數以獲取純文本
-    const { execSync } = require('child_process');
-    const curlCommand = `curl -X POST https://api.openai.com/v1/audio/transcriptions \
-      -H "Authorization: Bearer ${process.env.OPENAI_API_KEY}" \
-      -H "Content-Type: multipart/form-data" \
-      -F file=@${tempFilePath} \
-      -F model="whisper-1" \
-      -F language="zh" \
-      -F response_format="text"`;
+    // 將音頻 buffer 添加到 FormData
+    formData.append('file', audioBuffer, {
+      filename: `audio_${userId}_${Date.now()}.m4a`,
+      contentType: 'audio/m4a'
+    });
     
-    console.log('Executing curl command for Whisper API');
+    // 添加其他必要參數
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'zh');
+    formData.append('response_format', 'text');
     
-    const result = execSync(curlCommand).toString();
-    console.log('Whisper API result:', result);
+    console.log('Sending request to OpenAI Whisper API');
     
-    // 由於我們使用了 response_format=text，結果已經是文本而不是 JSON
-    // 不需要解析 JSON
-    const transcribedText = result.trim();
+    // 發送請求到 OpenAI API
+    const response = await axios.post(
+      'https://api.openai.com/v1/audio/transcriptions',
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          ...formData.getHeaders()
+        }
+      }
+    );
     
-    // 清理臨時文件
-    fs.unlinkSync(tempFilePath);
-    console.log(`Deleted temporary file: ${tempFilePath}`);
+    console.log('Whisper API response status:', response.status);
+    
+    // 獲取轉錄文本
+    const transcribedText = response.data;
+    console.log('Transcribed text:', transcribedText);
     
     // 返回轉錄文本
     return transcribedText || '';
     
   } catch (error) {
     console.error('Error converting audio to text with Whisper:', error.message);
+    if (error.response) {
+      console.error('OpenAI API error details:', {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
     throw new Error('Failed to convert audio to text with Whisper');
   }
 }
