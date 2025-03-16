@@ -957,12 +957,12 @@ async function convertAudioToTextWithWhisper(audioBuffer, userId) {
     
     console.log('Whisper API response status:', response.status);
     
-    // 獲取轉錄文本
-    const transcribedText = response.data;
+    // 獲取轉錄文本並去除首尾空白和換行符
+    const transcribedText = typeof response.data === 'string' ? response.data.trim() : '';
     console.log('Transcribed text:', transcribedText);
     
     // 返回轉錄文本
-    return transcribedText || '';
+    return transcribedText;
     
   } catch (error) {
     console.error('Error converting audio to text with Whisper:', error.message);
@@ -1187,7 +1187,8 @@ function createMessagesFromResponse(response, isConyMessage = false) {
   const messages = [];
 
   // 如果有轉錄文字，添加一個綠色背景的 Flex Message 到消息數組的最前面
-  if (transcribedText) {
+  if (transcribedText && transcribedText.trim()) {
+    const cleanTranscribedText = transcribedText.trim();
     const transcriptionFlexMessage = {
       type: 'flex',
       altText: '語音訊息內容',
@@ -1200,7 +1201,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
           contents: [
             {
               type: 'text',
-              text: `：${transcribedText}`,
+              text: `：${cleanTranscribedText}`,
               wrap: true,
               color: '#FFFFFF',
               size: 'md'
