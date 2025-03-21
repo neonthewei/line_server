@@ -196,100 +196,9 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
   });
 
   try {
-    // Extract userId and text from message if it's an object
-    const userId = typeof message === "object" ? message.userId : null;
-    const messageText = typeof message === "object" ? message.text : message;
-
-    // Process the message to check for JSON content that should be a Flex Message
-    const processedMessage = processDifyMessage(messageText);
-    const messages = [];
-
-    // Add text message if there's text content
-    if (processedMessage.text && processedMessage.text.trim() !== "") {
-      const textMessageObj = {
-        type: "text",
-        text: processedMessage.text,
-      };
-
-      // 如果是Cony訊息，添加sender信息
-      if (isConyMessage) {
-        textMessageObj.sender = {
-          name: "Cony",
-          iconUrl:
-            "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
-        };
-      }
-
-      messages.push(textMessageObj);
-      console.log(
-        "Added text message to LINE response:",
-        JSON.stringify(textMessageObj, null, 2)
-      );
-    }
-
-    // Add Flex Messages if available
-    if (
-      processedMessage.flexMessages &&
-      processedMessage.flexMessages.length > 0
-    ) {
-      processedMessage.flexMessages.forEach((flexMessage, index) => {
-        // Determine the appropriate altText based on the transaction type
-        let altText = "已為您記帳！";
-
-        if (processedMessage.type === "income") {
-          altText = "已為您記錄收入！";
-        } else if (processedMessage.type === "expense") {
-          altText = "已為您記錄支出！";
-        }
-
-        // Properly format the Flex Message with the required wrapper structure
-        const flexMessageObj = {
-          type: "flex",
-          altText: altText,
-          contents: flexMessage,
-          // 添加Quick Reply按鈕到Flex Message
-          quickReply: {
-            items: [
-              {
-                type: "action",
-                imageUrl:
-                  "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742467030/11_jhqvhe.png",
-                action: {
-                  type: "uri",
-                  label: "明細",
-                  uri: "https://liff.line.me/2007052419-6KyqOAoX",
-                },
-              },
-              {
-                type: "action",
-                imageUrl:
-                  "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742467013/22_fnlufx.png",
-                action: {
-                  type: "uri",
-                  label: "分析",
-                  uri: "https://liff.line.me/2007052419-Br7KNJxo",
-                },
-              },
-              {
-                type: "action",
-                imageUrl:
-                  "https://res.cloudinary.com/dt7pnivs1/image/upload/v1742467019/33_s7tz7c.png",
-                action: {
-                  type: "uri",
-                  label: "我的",
-                  uri: "https://liff.line.me/2007052419-mWakO8RW",
-                },
-              },
-            ],
-          },
-        };
-        messages.push(flexMessageObj);
-        console.log(
-          `Added Flex Message ${index + 1} to LINE response:`,
-          JSON.stringify(flexMessageObj, null, 2)
-        );
-      });
-    }
+    // 使用 createMessagesFromResponse 函數創建訊息
+    // 這可以確保所有訊息都會遵循相同的格式，包括添加 Quick Reply
+    const messages = createMessagesFromResponse(message, isConyMessage);
 
     // If no messages to send, return early
     if (messages.length === 0) {
@@ -301,6 +210,9 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
       "Sending messages to LINE API:",
       JSON.stringify(messages, null, 2)
     );
+
+    // Extract userId from message if it's an object (for push messaging if needed)
+    const userId = typeof message === "object" ? message.userId : null;
 
     // LINE API has a limit of 5 messages per reply
     // If we have more than 5 messages, we need to split them into multiple requests
@@ -1280,7 +1192,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
   const processedMessage = processDifyMessage(messageText);
   const messages = [];
 
-  // 如果有轉錄文字，添加一個綠色背景的 Flex Message 到消息數組的最前面
+  // 1. 如果有轉錄文字，添加一個綠色背景的 Flex Message 到消息數組的最前面
   if (transcribedText && transcribedText.trim()) {
     const cleanTranscribedText = transcribedText.trim();
     const transcriptionFlexMessage = {
@@ -1310,7 +1222,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
     messages.push(transcriptionFlexMessage);
   }
 
-  // Add Flex Messages if there are any
+  // 2. 添加 Flex Messages（記帳訊息，如果有）
   if (
     processedMessage.flexMessages &&
     processedMessage.flexMessages.length > 0
@@ -1335,7 +1247,7 @@ function createMessagesFromResponse(response, isConyMessage = false) {
     });
   }
 
-  // Then add text message if there's text content
+  // 3. 添加文字訊息（如果有）
   if (processedMessage.text && processedMessage.text.trim() !== "") {
     const textMessageObj = {
       type: "text",
