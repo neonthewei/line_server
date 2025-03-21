@@ -913,9 +913,9 @@ async function convertAudioToText(audioBuffer, userId) {
   }
 }
 
-// 使用 OpenAI Whisper API 進行語音轉文字
-async function convertAudioToTextWithWhisper(audioBuffer, userId) {
-  console.log("Converting audio to text using OpenAI Whisper API");
+// 使用 OpenAI Whisper API 進行語音轉文字 (舊版本，保留供參考)
+async function convertAudioToTextWithWhisperOld(audioBuffer, userId) {
+  console.log("Converting audio to text using OpenAI Whisper API (old)");
 
   try {
     // 使用 FormData 和 axios 直接發送請求，不寫入文件系統
@@ -971,6 +971,69 @@ async function convertAudioToTextWithWhisper(audioBuffer, userId) {
       });
     }
     throw new Error("Failed to convert audio to text with Whisper");
+  }
+}
+
+// 使用 OpenAI GPT-4o mini Transcribe 進行語音轉文字
+async function convertAudioToTextWithWhisper(audioBuffer, userId) {
+  console.log("Converting audio to text using OpenAI GPT-4o mini Transcribe");
+
+  try {
+    // 使用 FormData 和 axios 直接發送請求，不寫入文件系統
+    const FormData = require("form-data");
+    const axios = require("axios");
+
+    // 創建 FormData 對象
+    const formData = new FormData();
+
+    // 將音頻 buffer 添加到 FormData
+    formData.append("file", audioBuffer, {
+      filename: `audio_${userId}_${Date.now()}.m4a`,
+      contentType: "audio/m4a",
+    });
+
+    // 添加其他必要參數
+    formData.append("model", "gpt-4o-mini"); // 使用 GPT-4o mini Transcribe 模型
+    formData.append("language", "zh");
+    formData.append("response_format", "text");
+
+    console.log(
+      "Sending request to OpenAI Audio Transcription API with GPT-4o mini"
+    );
+
+    // 發送請求到 OpenAI API
+    const response = await axios.post(
+      "https://api.openai.com/v1/audio/transcriptions",
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          ...formData.getHeaders(),
+        },
+      }
+    );
+
+    console.log("GPT-4o mini Transcribe API response status:", response.status);
+
+    // 獲取轉錄文本並去除首尾空白和換行符
+    const transcribedText =
+      typeof response.data === "string" ? response.data.trim() : "";
+    console.log("Transcribed text:", transcribedText);
+
+    // 返回轉錄文本
+    return transcribedText;
+  } catch (error) {
+    console.error(
+      "Error converting audio to text with GPT-4o mini:",
+      error.message
+    );
+    if (error.response) {
+      console.error("OpenAI API error details:", {
+        status: error.response.status,
+        data: error.response.data,
+      });
+    }
+    throw new Error("Failed to convert audio to text with GPT-4o mini");
   }
 }
 
@@ -1095,7 +1158,7 @@ app.post("/webhook", verifyLineSignature, async (req, res) => {
             );
             console.log("Audio content type:", typeof audioContent);
 
-            // 2. 使用 OpenAI Whisper API 進行語音轉文字
+            // 2. 使用 OpenAI GPT-4o mini Transcribe 進行語音轉文字
             const transcribedText = await convertAudioToTextWithWhisper(
               audioContent,
               userId
