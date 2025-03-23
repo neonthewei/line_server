@@ -504,7 +504,9 @@ function processDifyMessage(difyMessage) {
 
   // Extract record IDs from the format [{"id":106}, {"id":107}]
   let recordIds = [];
-  const idsRegex = /\[(\{"id":\d+\}(?:,\s*\{"id":\d+\})*)\]/;
+  // Updated regex to handle the format [{"id":493}, {"id":494}],[{"type": "expense"}]
+  // Now matches IDs that might be followed by a comma and the type information
+  const idsRegex = /\[(\{"id":\d+\}(?:,\s*\{"id":\d+\})*)\](?:,\s*)?/;
   const idsMatch = difyMessage.match(idsRegex);
 
   if (idsMatch) {
@@ -528,12 +530,15 @@ function processDifyMessage(difyMessage) {
   if (typeMatch) {
     transactionType = typeMatch[1];
     console.log("Extracted transaction type:", transactionType);
-    // Remove the type part from the remaining text and any trailing commas
-    remainingText = remainingText
-      .replace(typeMatch[0], "")
-      .replace(/,\s*$/, "")
-      .trim();
+    // Remove the type part from the remaining text
+    remainingText = remainingText.replace(typeMatch[0], "").trim();
   }
+
+  // After removing both ID and type markers, clean up any trailing commas or duplicate commas
+  remainingText = remainingText
+    .replace(/,+\s*$/, "")
+    .replace(/,\s*,/g, ",")
+    .trim();
 
   // Try to find JSON in code blocks first (for multi-record)
   const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/g;
@@ -557,10 +562,25 @@ function processDifyMessage(difyMessage) {
 
         // Process each record in the array
         jsonArray.forEach((record, index) => {
+          // For multiple records, create a proper record_id format that matches [{"id":x}]
+          // This preserves compatibility with both single and multiple record formats
+          let record_id;
+          if (recordIds.length > 0) {
+            if (recordIds.length > 1) {
+              // For multiple record IDs, use the actual ID at the correct index
+              record_id = recordIds[index] || "";
+            } else {
+              // If we only have one record ID but multiple records, use the same ID for all
+              record_id = recordIds[0] || "";
+            }
+          } else {
+            record_id = "";
+          }
+
           // Add record ID and transaction type to each record
           const recordWithId = {
             ...record,
-            record_id: recordIds[index] || "",
+            record_id: record_id,
             type: transactionType,
           };
 
@@ -587,10 +607,16 @@ function processDifyMessage(difyMessage) {
         console.log("Found single JSON object in code block:", jsonObject);
         foundJsonInCodeBlock = true;
 
+        // Get the appropriate record ID
+        let record_id = "";
+        if (recordIds.length > 0) {
+          record_id = recordIds[0] || "";
+        }
+
         // Add record ID and transaction type to the record
         const recordWithId = {
           ...jsonObject,
-          record_id: recordIds[0] || "",
+          record_id: record_id,
           type: transactionType,
         };
 
@@ -625,10 +651,24 @@ function processDifyMessage(difyMessage) {
 
         // Process each record in the array
         jsonArray.forEach((record, index) => {
+          // For multiple records, handle record IDs properly
+          let record_id;
+          if (recordIds.length > 0) {
+            if (recordIds.length > 1) {
+              // For multiple record IDs, use the actual ID at the correct index
+              record_id = recordIds[index] || "";
+            } else {
+              // If we only have one record ID but multiple records, use the same ID for all
+              record_id = recordIds[0] || "";
+            }
+          } else {
+            record_id = "";
+          }
+
           // Add record ID and transaction type to each record
           const recordWithId = {
             ...record,
-            record_id: recordIds[index] || "",
+            record_id: record_id,
             type: transactionType,
           };
 
@@ -655,8 +695,15 @@ function processDifyMessage(difyMessage) {
       if (jsonObjectMatch) {
         try {
           const jsonData = JSON.parse(jsonObjectMatch[0]);
+
+          // Get the appropriate record ID
+          let record_id = "";
+          if (recordIds.length > 0) {
+            record_id = recordIds[0] || "";
+          }
+
           // Add record ID and transaction type
-          jsonData.record_id = recordIds[0] || "";
+          jsonData.record_id = record_id;
           jsonData.type = transactionType;
 
           // If is_fixed is not present, set a default value
@@ -685,6 +732,12 @@ function processDifyMessage(difyMessage) {
         const exactMatch = remainingText.match(exactFormatRegex);
 
         if (exactMatch) {
+          // Get the appropriate record ID
+          let record_id = "";
+          if (recordIds.length > 0) {
+            record_id = recordIds[0] || "";
+          }
+
           // Construct a clean JSON object from the matched groups
           const jsonData = {
             category: exactMatch[1],
@@ -693,7 +746,7 @@ function processDifyMessage(difyMessage) {
             is_fixed: exactMatch[4] === "true",
             user_id: exactMatch[5],
             datetime: exactMatch[6],
-            record_id: recordIds[0] || "", // Add the first record ID to the data
+            record_id: record_id, // Add the record ID to the data
             type: transactionType, // Add the transaction type to the data
           };
 
@@ -720,6 +773,7 @@ function processDifyMessage(difyMessage) {
       .replace(/```\s*```/g, "")
       .replace(/```json/g, "")
       .replace(/```/g, "")
+      .replace(/,+\s*$/, "") // Remove any trailing commas again as a final cleanup
       .trim();
     return {
       text: remainingText,
@@ -783,6 +837,24 @@ function createFlexMessage(data) {
     const templatePath = path.join(__dirname, "record.json");
     const templateString = fs.readFileSync(templatePath, "utf8");
 
+    // Format the record ID correctly for the edit button URL
+    // For single record, just use the ID as is
+    // For compound record ID, ensure it's properly JSON formatted
+    let recordIdParam = "";
+    if (data.record_id) {
+      // Check if the record_id is already a string representation of an array or object
+      if (
+        typeof data.record_id === "string" &&
+        (data.record_id.startsWith("[") || data.record_id.startsWith("{"))
+      ) {
+        // It's already a JSON string, use as is
+        recordIdParam = encodeURIComponent(data.record_id);
+      } else {
+        // It's a simple ID, encode it directly
+        recordIdParam = encodeURIComponent(data.record_id);
+      }
+    }
+
     // Replace placeholders with actual values
     let flexMessageString = templateString
       .replace("${category}", data.category || "未分類")
@@ -801,7 +873,7 @@ function createFlexMessage(data) {
         data.datetime || new Date().toISOString().split("T")[0]
       )
       .replace("${liffId}", process.env.LIFF_ID)
-      .replace("${recordId}", data.record_id || "")
+      .replace("${recordId}", recordIdParam)
       .replace("${type}", data.type || "expense"); // Add type parameter for the edit button
 
     // Parse the string back to JSON
@@ -1188,8 +1260,11 @@ function createMessagesFromResponse(response, isConyMessage = false) {
   const transcribedText =
     typeof response === "object" ? response.transcribedText : null;
 
+  // Additional cleanup for message text before processing - remove any ID or type patterns
+  const cleanedMessageText = cleanupMessageText(messageText);
+
   // Process the message to check for JSON content that should be a Flex Message
-  const processedMessage = processDifyMessage(messageText);
+  const processedMessage = processDifyMessage(cleanedMessageText);
   const messages = [];
 
   // 1. 如果有轉錄文字，添加一個綠色背景的 Flex Message 到消息數組的最前面
@@ -1249,21 +1324,26 @@ function createMessagesFromResponse(response, isConyMessage = false) {
 
   // 3. 添加文字訊息（如果有）
   if (processedMessage.text && processedMessage.text.trim() !== "") {
-    const textMessageObj = {
-      type: "text",
-      text: processedMessage.text,
-    };
+    // Perform a final cleanup on the text to make sure it doesn't contain any remaining markers
+    const cleanText = cleanupMessageText(processedMessage.text);
 
-    // 如果是Cony訊息，添加sender信息
-    if (isConyMessage) {
-      textMessageObj.sender = {
-        name: "Cony",
-        iconUrl:
-          "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
+    if (cleanText.trim() !== "") {
+      const textMessageObj = {
+        type: "text",
+        text: cleanText,
       };
-    }
 
-    messages.push(textMessageObj);
+      // 如果是Cony訊息，添加sender信息
+      if (isConyMessage) {
+        textMessageObj.sender = {
+          name: "Cony",
+          iconUrl:
+            "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
+        };
+      }
+
+      messages.push(textMessageObj);
+    }
   }
 
   // 確保訊息數量不超過LINE的限制（5個）
@@ -1321,6 +1401,34 @@ function createMessagesFromResponse(response, isConyMessage = false) {
   });
 
   return messages;
+}
+
+/**
+ * Helper function to clean up message text by removing record ID and transaction type patterns
+ * @param {string} text - The original message text
+ * @returns {string} - The cleaned message text
+ */
+function cleanupMessageText(text) {
+  if (!text) return "";
+
+  let cleanedText = text;
+
+  // Remove record ID pattern
+  const idsRegex = /\[(\{"id":\d+\}(?:,\s*\{"id":\d+\})*)\](?:,\s*)?/g;
+  cleanedText = cleanedText.replace(idsRegex, "");
+
+  // Remove transaction type pattern
+  const typeRegex = /\[\{"type":\s*"([^"]+)"\}\]/g;
+  cleanedText = cleanedText.replace(typeRegex, "");
+
+  // Clean up trailing and duplicate commas, and normalize whitespace
+  cleanedText = cleanedText
+    .replace(/,+\s*$/, "") // Remove trailing commas
+    .replace(/,\s*,/g, ",") // Replace duplicate commas with a single one
+    .replace(/\s+/g, " ") // Normalize whitespace
+    .trim();
+
+  return cleanedText;
 }
 
 // Health check endpoint
