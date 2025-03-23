@@ -498,6 +498,16 @@ function processDifyMessage(difyMessage) {
   console.log("Processing Dify message for Flex Message extraction");
   console.log("Original message:", difyMessage);
 
+  // Check if message is exactly "教學文檔" (Tutorial Document)
+  if (
+    (difyMessage && difyMessage.trim() === "教學文檔") ||
+    (difyMessage && difyMessage.trim() === "旺來怎麼用") ||
+    (difyMessage && difyMessage.trim() === "說明")
+  ) {
+    console.log("Tutorial document request detected");
+    return createTutorialMessage();
+  }
+
   // Array to store multiple flex messages
   const flexMessages = [];
   let remainingText = difyMessage;
@@ -775,6 +785,10 @@ function processDifyMessage(difyMessage) {
       .replace(/```/g, "")
       .replace(/,+\s*$/, "") // Remove any trailing commas again as a final cleanup
       .trim();
+
+    // Perform an additional cleanup on the remaining text to remove any ID or type patterns
+    remainingText = cleanupMessageText(remainingText);
+
     return {
       text: remainingText,
       flexMessages: flexMessages,
@@ -784,8 +798,12 @@ function processDifyMessage(difyMessage) {
 
   // If no JSON was found, return the original message
   console.log("No JSON found in the message, sending as plain text");
+
+  // Clean up the original message before returning
+  const cleanedMessage = cleanupMessageText(difyMessage);
+
   return {
-    text: difyMessage,
+    text: cleanedMessage,
     flexMessages: [],
     type: transactionType,
   };
@@ -1200,10 +1218,16 @@ app.post("/webhook", verifyLineSignature, async (req, res) => {
             // 確保 responseWithUserId 是一個對象
             let responseWithUserId;
             if (typeof response === "object") {
+              // Apply additional cleanup to the text property if it exists
+              if (response.text) {
+                response.text = cleanupMessageText(response.text);
+              }
               responseWithUserId = response;
             } else {
+              // Apply additional cleanup to string responses
+              const cleanedResponse = cleanupMessageText(response);
               responseWithUserId = {
-                text: response,
+                text: cleanedResponse,
                 userId: userId,
               };
             }
@@ -1259,12 +1283,16 @@ function createMessagesFromResponse(response, isConyMessage = false) {
   const messageText = typeof response === "object" ? response.text : response;
   const transcribedText =
     typeof response === "object" ? response.transcribedText : null;
+  const responseType = typeof response === "object" ? response.type : null;
 
   // Additional cleanup for message text before processing - remove any ID or type patterns
   const cleanedMessageText = cleanupMessageText(messageText);
 
   // Process the message to check for JSON content that should be a Flex Message
-  const processedMessage = processDifyMessage(cleanedMessageText);
+  const processedMessage =
+    responseType === "tutorial"
+      ? response
+      : processDifyMessage(cleanedMessageText);
   const messages = [];
 
   // 1. 如果有轉錄文字，添加一個綠色背景的 Flex Message 到消息數組的最前面
@@ -1297,16 +1325,19 @@ function createMessagesFromResponse(response, isConyMessage = false) {
     messages.push(transcriptionFlexMessage);
   }
 
-  // 2. 添加 Flex Messages（記帳訊息，如果有）
+  // 2. 添加 Flex Messages（記帳訊息或教學文檔，如果有）
   if (
     processedMessage.flexMessages &&
     processedMessage.flexMessages.length > 0
   ) {
     processedMessage.flexMessages.forEach((flexMessage, index) => {
-      // Determine the appropriate altText based on the transaction type
+      // Determine the appropriate altText based on the message type
       let altText = "已為您記帳！";
 
-      if (processedMessage.type === "income") {
+      if (processedMessage.type === "tutorial") {
+        // For tutorial messages, use different alt text for each part
+        altText = index === 0 ? "🍍旺來新手教學 (上)" : "🍍旺來新手教學 (下)";
+      } else if (processedMessage.type === "income") {
         altText = "已為您記錄收入！";
       } else if (processedMessage.type === "expense") {
         altText = "已為您記錄支出！";
@@ -1413,12 +1444,18 @@ function cleanupMessageText(text) {
 
   let cleanedText = text;
 
-  // Remove record ID pattern
-  const idsRegex = /\[(\{"id":\d+\}(?:,\s*\{"id":\d+\})*)\](?:,\s*)?/g;
+  // First, try to match and remove the exact pattern from the user's example
+  // This handles cases like ",\n[{"id":73}],[{"type": "income"}]"
+  const exactPattern =
+    /,?\s*\[\{\"id\":(\d+)\}\],\[\{\"type\":\s*\"([^\"]+)\"\}\]/g;
+  cleanedText = cleanedText.replace(exactPattern, "");
+
+  // Remove record ID pattern (more general case)
+  const idsRegex = /,?\s*\[(\{"id":\d+\}(?:,\s*\{"id":\d+\})*)\](?:,\s*)?/g;
   cleanedText = cleanedText.replace(idsRegex, "");
 
-  // Remove transaction type pattern
-  const typeRegex = /\[\{"type":\s*"([^"]+)"\}\]/g;
+  // Remove transaction type pattern (more general case)
+  const typeRegex = /,?\s*\[\{"type":\s*"([^"]+)"\}\]/g;
   cleanedText = cleanedText.replace(typeRegex, "");
 
   // Clean up trailing and duplicate commas, and normalize whitespace
@@ -1488,5 +1525,54 @@ async function forwardMessageToTarget(message) {
       error.response ? error.response.data : error.message
     );
     throw error;
+  }
+}
+
+// Function to create a tutorial message using the split tutorial files
+function createTutorialMessage() {
+  console.log("Creating tutorial messages from split files");
+  try {
+    // Load both tutorial templates from the split files
+    const fs = require("fs");
+    const path = require("path");
+    const tutorial1Path = path.join(__dirname, "pineapple_tutorial_part1.json");
+    const tutorial2Path = path.join(__dirname, "pineapple_tutorial_part2.json");
+
+    const tutorial1Content = fs.readFileSync(tutorial1Path, "utf8");
+    const tutorial2Content = fs.readFileSync(tutorial2Path, "utf8");
+
+    // Parse the JSON content
+    const tutorial1Json = JSON.parse(tutorial1Content);
+    const tutorial2Json = JSON.parse(tutorial2Content);
+
+    console.log("Tutorial JSON files loaded successfully");
+
+    // Prepare the tutorial flex messages
+    const tutorialFlexMessages = [tutorial1Json, tutorial2Json];
+
+    // Line API can only handle 5 messages per request
+    // We're only sending tutorial flex messages here, so we're within the limit
+    // But add this check as a safety measure for future modifications
+    const MAX_FLEX_MESSAGES = 5;
+    if (tutorialFlexMessages.length > MAX_FLEX_MESSAGES) {
+      console.log(
+        `Tutorial has too many parts (${tutorialFlexMessages.length}), truncating to ${MAX_FLEX_MESSAGES}`
+      );
+      tutorialFlexMessages.length = MAX_FLEX_MESSAGES;
+    }
+
+    return {
+      text: "", // No text content needed
+      flexMessages: tutorialFlexMessages, // Send both tutorial flex messages in order
+      type: "tutorial", // Mark as a tutorial type message
+    };
+  } catch (error) {
+    console.error("Error creating tutorial messages:", error);
+    // Return a simple fallback text message
+    return {
+      text: "無法顯示教學文檔。請重新嘗試或聯繫客服。",
+      flexMessages: [],
+      type: "tutorial",
+    };
   }
 }

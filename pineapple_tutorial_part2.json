@@ -1,0 +1,190 @@
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "▪️記完帳，會跳出 3 個按鈕：",
+            "weight": "bold",
+            "size": "md",
+            "color": "#555555",
+            "margin": "xs"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "margin": "md",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "明細",
+                        "weight": "bold",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "gravity": "center"
+                      }
+                    ],
+                    "backgroundColor": "#FF9650",
+                    "cornerRadius": "md",
+                    "width": "60px",
+                    "paddingAll": "4px",
+                    "alignItems": "center",
+                    "justifyContent": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "快速查看花費紀錄",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "wrap": true,
+                    "flex": 4
+                  }
+                ],
+                "spacing": "sm",
+                "alignItems": "center"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "分析",
+                        "weight": "bold",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "gravity": "center"
+                      }
+                    ],
+                    "backgroundColor": "#FF9650",
+                    "cornerRadius": "md",
+                    "width": "60px",
+                    "paddingAll": "4px",
+                    "alignItems": "center",
+                    "justifyContent": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "圖表財務，一目瞭然",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "wrap": true,
+                    "flex": 4
+                  }
+                ],
+                "spacing": "sm",
+                "margin": "xs",
+                "alignItems": "center"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "我的",
+                        "weight": "bold",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "gravity": "center"
+                      }
+                    ],
+                    "backgroundColor": "#FF9650",
+                    "cornerRadius": "md",
+                    "width": "60px",
+                    "paddingAll": "4px",
+                    "alignItems": "center",
+                    "justifyContent": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "開發中，敬請期待✨",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "wrap": true,
+                    "flex": 4
+                  }
+                ],
+                "spacing": "sm",
+                "margin": "xs",
+                "alignItems": "center"
+              }
+            ]
+          }
+        ],
+        "paddingTop": "8px",
+        "backgroundColor": "#F8F8F8",
+        "cornerRadius": "lg",
+        "paddingAll": "10px",
+        "margin": "sm",
+        "paddingBottom": "8px"
+      }
+    ],
+    "paddingAll": "16px",
+    "backgroundColor": "#FFFFFF",
+    "spacing": "sm"
+  },
+  "footer": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "隨時問旺來怎麼用，它都會再告訴你喔",
+            "wrap": true,
+            "size": "xs",
+            "color": "#888888",
+            "margin": "xs",
+            "flex": 5,
+            "align": "center"
+          }
+        ],
+        "alignItems": "center",
+        "justifyContent": "center"
+      }
+    ],
+    "paddingAll": "12px",
+    "backgroundColor": "#FFFFFF"
+  },
+  "styles": {
+    "body": {
+      "backgroundColor": "#FFFFFF"
+    },
+    "footer": {
+      "separator": true,
+      "separatorColor": "#EEEEEE"
+    }
+  }
+}

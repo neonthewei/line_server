@@ -1,0 +1,470 @@
+{
+  "type": "bubble",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [],
+        "height": "8px",
+        "backgroundColor": "#FF8C00",
+        "width": "100%"
+      }
+    ],
+    "backgroundColor": "#FFF9E6",
+    "paddingAll": "0px",
+    "height": "8px",
+    "cornerRadius": "md"
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "▪️怎麼記帳？",
+            "weight": "bold",
+            "size": "md",
+            "color": "#555555"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "margin": "md",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "1",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "weight": "bold",
+                        "gravity": "center",
+                        "offsetTop": "0px"
+                      }
+                    ],
+                    "width": "22px",
+                    "height": "22px",
+                    "backgroundColor": "#FF8C00",
+                    "cornerRadius": "100px",
+                    "flex": 0,
+                    "justifyContent": "center",
+                    "alignItems": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "一般記帳",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "flex": 0
+                  }
+                ],
+                "spacing": "sm"
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "輸入「類型＋金額」就好～",
+                    "wrap": true,
+                    "size": "sm",
+                    "color": "#555555"
+                  },
+                  {
+                    "type": "text",
+                    "text": "例：早餐 80 / 獎金 10000",
+                    "wrap": true,
+                    "size": "xs",
+                    "color": "#777777",
+                    "margin": "sm",
+                    "style": "italic"
+                  }
+                ],
+                "margin": "md",
+                "paddingStart": "30px"
+              }
+            ],
+            "paddingBottom": "10px"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "2",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "weight": "bold",
+                        "gravity": "center",
+                        "offsetTop": "0px"
+                      }
+                    ],
+                    "width": "22px",
+                    "height": "22px",
+                    "backgroundColor": "#FF8C00",
+                    "cornerRadius": "100px",
+                    "flex": 0,
+                    "justifyContent": "center",
+                    "alignItems": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "指定時間",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "flex": 0
+                  }
+                ],
+                "spacing": "sm"
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "補記花費？輸入「日期＋類型＋金額」",
+                    "wrap": true,
+                    "size": "sm",
+                    "color": "#555555"
+                  },
+                  {
+                    "type": "text",
+                    "text": "例：3/21 晚餐 180",
+                    "wrap": true,
+                    "size": "xs",
+                    "color": "#777777",
+                    "margin": "sm",
+                    "style": "italic"
+                  }
+                ],
+                "margin": "md",
+                "paddingStart": "30px"
+              }
+            ],
+            "paddingBottom": "10px"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "3",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "weight": "bold",
+                        "gravity": "center",
+                        "offsetTop": "0px"
+                      }
+                    ],
+                    "width": "22px",
+                    "height": "22px",
+                    "backgroundColor": "#FF8C00",
+                    "cornerRadius": "100px",
+                    "flex": 0,
+                    "justifyContent": "center",
+                    "alignItems": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "語音記帳",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "flex": 0
+                  }
+                ],
+                "spacing": "sm"
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "懶得打字？LINE 語音輸入：「今天午餐120元」",
+                    "wrap": true,
+                    "size": "sm",
+                    "color": "#555555"
+                  }
+                ],
+                "margin": "md",
+                "paddingStart": "30px"
+              }
+            ]
+          }
+        ],
+        "paddingBottom": "15px",
+        "paddingTop": "5px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "text",
+                "text": "⚠️ 記錯了嗎？",
+                "wrap": true,
+                "size": "sm",
+                "color": "#FFFFFF",
+                "weight": "bold",
+                "align": "center"
+              },
+              {
+                "type": "text",
+                "text": "點帳目下方的編輯按鈕就能修改！",
+                "wrap": true,
+                "size": "xs",
+                "color": "#FFFFFF",
+                "align": "center",
+                "margin": "xs"
+              }
+            ],
+            "backgroundColor": "#FF6B6B",
+            "cornerRadius": "md",
+            "paddingAll": "10px"
+          }
+        ],
+        "paddingBottom": "20px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "▪️記完帳，會跳出 3 個按鈕：",
+            "weight": "bold",
+            "size": "md",
+            "color": "#555555",
+            "margin": "xs"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "margin": "md",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "明細",
+                        "weight": "bold",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "gravity": "center"
+                      }
+                    ],
+                    "backgroundColor": "#1E90FF",
+                    "cornerRadius": "md",
+                    "width": "60px",
+                    "paddingAll": "5px",
+                    "alignItems": "center",
+                    "justifyContent": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "快速查看花費紀錄",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "wrap": true,
+                    "flex": 4
+                  }
+                ],
+                "spacing": "sm",
+                "alignItems": "center"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "分析",
+                        "weight": "bold",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "gravity": "center"
+                      }
+                    ],
+                    "backgroundColor": "#1E90FF",
+                    "cornerRadius": "md",
+                    "width": "60px",
+                    "paddingAll": "5px",
+                    "alignItems": "center",
+                    "justifyContent": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "圖表財務，一目瞭然",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "wrap": true,
+                    "flex": 4
+                  }
+                ],
+                "spacing": "sm",
+                "margin": "md",
+                "alignItems": "center"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "我的",
+                        "weight": "bold",
+                        "size": "sm",
+                        "color": "#FFFFFF",
+                        "align": "center",
+                        "gravity": "center"
+                      }
+                    ],
+                    "backgroundColor": "#1E90FF",
+                    "cornerRadius": "md",
+                    "width": "60px",
+                    "paddingAll": "5px",
+                    "alignItems": "center",
+                    "justifyContent": "center"
+                  },
+                  {
+                    "type": "text",
+                    "text": "開發中，敬請期待✨",
+                    "size": "sm",
+                    "color": "#555555",
+                    "margin": "md",
+                    "wrap": true,
+                    "flex": 4
+                  }
+                ],
+                "spacing": "sm",
+                "margin": "md",
+                "alignItems": "center"
+              }
+            ]
+          }
+        ],
+        "paddingTop": "10px",
+        "backgroundColor": "#F8F8F8",
+        "cornerRadius": "lg",
+        "paddingAll": "12px",
+        "margin": "md",
+        "paddingBottom": "10px"
+      }
+    ],
+    "paddingAll": "20px",
+    "backgroundColor": "#FFFFFF",
+    "spacing": "md"
+  },
+  "footer": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "💡",
+            "size": "md",
+            "flex": 0,
+            "margin": "none",
+            "color": "#FFB800",
+            "align": "center"
+          },
+          {
+            "type": "text",
+            "text": "詢問旺來怎麼用，它會再告訴你喔",
+            "wrap": true,
+            "size": "xs",
+            "color": "#888888",
+            "margin": "sm",
+            "flex": 5,
+            "align": "center"
+          }
+        ],
+        "alignItems": "center",
+        "justifyContent": "center"
+      }
+    ],
+    "paddingAll": "15px",
+    "backgroundColor": "#FFFFFF"
+  },
+  "styles": {
+    "header": {
+      "separator": false
+    },
+    "body": {
+      "backgroundColor": "#FFFFFF"
+    },
+    "footer": {
+      "separator": true,
+      "separatorColor": "#EEEEEE"
+    }
+  }
+}
