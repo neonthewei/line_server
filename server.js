@@ -508,6 +508,9 @@ function processDifyMessage(difyMessage) {
     return createTutorialMessage();
   }
 
+  // Always keep the original message intact to preserve IDs and types
+  const originalMessage = difyMessage;
+
   // Array to store multiple flex messages
   const flexMessages = [];
   let remainingText = difyMessage;
@@ -525,8 +528,7 @@ function processDifyMessage(difyMessage) {
       const idsArray = JSON.parse(`[${idsMatch[1]}]`);
       recordIds = idsArray.map((item) => item.id);
       console.log("Extracted record IDs:", recordIds);
-      // Remove the IDs part from the remaining text
-      remainingText = remainingText.replace(idsMatch[0], "").trim();
+      // Don't remove IDs from the text anymore
     } catch (error) {
       console.error("Error parsing record IDs:", error);
     }
@@ -540,15 +542,11 @@ function processDifyMessage(difyMessage) {
   if (typeMatch) {
     transactionType = typeMatch[1];
     console.log("Extracted transaction type:", transactionType);
-    // Remove the type part from the remaining text
-    remainingText = remainingText.replace(typeMatch[0], "").trim();
+    // Don't remove type from the text anymore
   }
 
-  // After removing both ID and type markers, clean up any trailing commas or duplicate commas
-  remainingText = remainingText
-    .replace(/,+\s*$/, "")
-    .replace(/,\s*,/g, ",")
-    .trim();
+  // Just clean up trailing commas and extra whitespace
+  remainingText = difyMessage.trim();
 
   // Try to find JSON in code blocks first (for multi-record)
   const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)```/g;
@@ -773,40 +771,96 @@ function processDifyMessage(difyMessage) {
     }
   }
 
+  // Clean up the message text by removing JSON objects, IDs, and type information
+  const cleanedText = cleanMessageText(originalMessage);
+  console.log("Cleaned message text:", cleanedText);
+
   // If we found any JSON objects, return them
   if (flexMessages.length > 0) {
     console.log(`Found ${flexMessages.length} JSON objects in total`);
-    // Clean up remaining text by removing trailing commas, extra whitespace and any remaining ```json``` markers
+    // We still clean up code blocks and JSON formatting, but keep IDs and types
     remainingText = remainingText
-      .replace(/,\s*$/, "")
       .replace(/```json\s*```/g, "")
       .replace(/```\s*```/g, "")
       .replace(/```json/g, "")
       .replace(/```/g, "")
-      .replace(/,+\s*$/, "") // Remove any trailing commas again as a final cleanup
       .trim();
 
-    // Perform an additional cleanup on the remaining text to remove any ID or type patterns
-    remainingText = cleanupMessageText(remainingText);
-
     return {
-      text: remainingText,
+      // Use the cleaned message text instead of the original
+      text: cleanedText,
       flexMessages: flexMessages,
       type: transactionType,
     };
   }
 
-  // If no JSON was found, return the original message
+  // If no JSON was found, return the cleaned message
   console.log("No JSON found in the message, sending as plain text");
 
-  // Clean up the original message before returning
-  const cleanedMessage = cleanupMessageText(difyMessage);
-
   return {
-    text: cleanedMessage,
+    text: cleanedText,
     flexMessages: [],
     type: transactionType,
   };
+}
+
+// Function to clean message text by removing JSON objects, IDs, and type information
+function cleanMessageText(message) {
+  if (!message) return "";
+
+  let cleanedText = message;
+
+  // Remove JSON objects in code blocks
+  cleanedText = cleanedText.replace(
+    /```(?:json)?\s*(\{[\s\S]*?\}|\[[\s\S]*?\])\s*```/g,
+    ""
+  );
+
+  // Remove JSON objects without code blocks
+  cleanedText = cleanedText.replace(/\{[\s\S]*?\}/g, "");
+
+  // Remove record ID arrays completely - e.g., [{"id":106}, {"id":107}]
+  cleanedText = cleanedText.replace(
+    /\[\s*\{\s*"id"\s*:\s*\d+\s*\}(?:\s*,\s*\{\s*"id"\s*:\s*\d+\s*\})*\s*\](?:\s*,\s*)?/g,
+    ""
+  );
+
+  // Remove type information completely - e.g., [{"type": "expense"}]
+  cleanedText = cleanedText.replace(
+    /\[\s*\{\s*"type"\s*:\s*"[^"]+"\s*\}\s*\](?:\s*,\s*)?/g,
+    ""
+  );
+
+  // Remove any ID-type combined pattern - e.g., [{"id":803}],[{"type": "expense"}]
+  cleanedText = cleanedText.replace(
+    /\[\s*\{\s*"id"\s*:\s*\d+\s*\}\s*\]\s*,\s*\[\s*\{\s*"type"\s*:\s*"[^"]+"\s*\}\s*\]/g,
+    ""
+  );
+
+  // Remove any remaining empty brackets and comma combinations
+  cleanedText = cleanedText.replace(/\[\s*\]\s*(?:,\s*\[\s*\])?/g, "");
+
+  // Remove any bracket patterns with commas inside - e.g., [, ]
+  cleanedText = cleanedText.replace(/\[\s*,\s*\]/g, "");
+
+  // Remove any remaining square bracket patterns
+  cleanedText = cleanedText.replace(/\[\s*[^\]]*\]/g, "");
+
+  // Remove trailing commas
+  cleanedText = cleanedText.replace(/,\s*$/g, "");
+
+  // Remove any remaining empty code blocks
+  cleanedText = cleanedText.replace(/```\s*```/g, "");
+  cleanedText = cleanedText.replace(/```json\s*```/g, "");
+  cleanedText = cleanedText.replace(/```/g, "");
+
+  // Clean up multiple spaces, newlines and trim
+  cleanedText = cleanedText.replace(/\s+/g, " ").trim();
+
+  // If we have text like "以下是您本次的紀錄：" followed by nothing, remove it
+  cleanedText = cleanedText.replace(/以下是您本次的紀錄：\s*$/, "");
+
+  return cleanedText;
 }
 
 // Function to create a Flex Message using the template and data
@@ -1218,16 +1272,12 @@ app.post("/webhook", verifyLineSignature, async (req, res) => {
             // 確保 responseWithUserId 是一個對象
             let responseWithUserId;
             if (typeof response === "object") {
-              // Apply additional cleanup to the text property if it exists
-              if (response.text) {
-                response.text = cleanupMessageText(response.text);
-              }
+              // Keep the response text as is, don't clean it
               responseWithUserId = response;
             } else {
-              // Apply additional cleanup to string responses
-              const cleanedResponse = cleanupMessageText(response);
+              // Don't clean up string responses
               responseWithUserId = {
-                text: cleanedResponse,
+                text: response,
                 userId: userId,
               };
             }
@@ -1285,14 +1335,9 @@ function createMessagesFromResponse(response, isConyMessage = false) {
     typeof response === "object" ? response.transcribedText : null;
   const responseType = typeof response === "object" ? response.type : null;
 
-  // Additional cleanup for message text before processing - remove any ID or type patterns
-  const cleanedMessageText = cleanupMessageText(messageText);
-
   // Process the message to check for JSON content that should be a Flex Message
   const processedMessage =
-    responseType === "tutorial"
-      ? response
-      : processDifyMessage(cleanedMessageText);
+    responseType === "tutorial" ? response : processDifyMessage(messageText);
   const messages = [];
 
   // 1. 如果有轉錄文字，添加一個綠色背景的 Flex Message 到消息數組的最前面
@@ -1355,13 +1400,10 @@ function createMessagesFromResponse(response, isConyMessage = false) {
 
   // 3. 添加文字訊息（如果有）
   if (processedMessage.text && processedMessage.text.trim() !== "") {
-    // Perform a final cleanup on the text to make sure it doesn't contain any remaining markers
-    const cleanText = cleanupMessageText(processedMessage.text);
-
-    if (cleanText.trim() !== "") {
+    if (processedMessage.text.trim() !== "") {
       const textMessageObj = {
         type: "text",
-        text: cleanText,
+        text: processedMessage.text,
       };
 
       // 如果是Cony訊息，添加sender信息
@@ -1432,40 +1474,6 @@ function createMessagesFromResponse(response, isConyMessage = false) {
   });
 
   return messages;
-}
-
-/**
- * Helper function to clean up message text by removing record ID and transaction type patterns
- * @param {string} text - The original message text
- * @returns {string} - The cleaned message text
- */
-function cleanupMessageText(text) {
-  if (!text) return "";
-
-  let cleanedText = text;
-
-  // First, try to match and remove the exact pattern from the user's example
-  // This handles cases like ",\n[{"id":73}],[{"type": "income"}]"
-  const exactPattern =
-    /,?\s*\[\{\"id\":(\d+)\}\],\[\{\"type\":\s*\"([^\"]+)\"\}\]/g;
-  cleanedText = cleanedText.replace(exactPattern, "");
-
-  // Remove record ID pattern (more general case)
-  const idsRegex = /,?\s*\[(\{"id":\d+\}(?:,\s*\{"id":\d+\})*)\](?:,\s*)?/g;
-  cleanedText = cleanedText.replace(idsRegex, "");
-
-  // Remove transaction type pattern (more general case)
-  const typeRegex = /,?\s*\[\{"type":\s*"([^"]+)"\}\]/g;
-  cleanedText = cleanedText.replace(typeRegex, "");
-
-  // Clean up trailing and duplicate commas, and normalize whitespace
-  cleanedText = cleanedText
-    .replace(/,+\s*$/, "") // Remove trailing commas
-    .replace(/,\s*,/g, ",") // Replace duplicate commas with a single one
-    .replace(/\s+/g, " ") // Normalize whitespace
-    .trim();
-
-  return cleanedText;
 }
 
 // Health check endpoint
