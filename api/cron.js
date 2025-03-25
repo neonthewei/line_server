@@ -8,9 +8,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = async function handler(req, res) {
   // 驗證請求的 Authorization 頭是否匹配 CRON_SECRET
-  if (
-    req.headers.get("Authorization") !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).end("Unauthorized");
   }
 
