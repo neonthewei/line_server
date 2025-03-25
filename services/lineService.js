@@ -9,6 +9,13 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
     replyToken: replyToken,
     message: typeof message === "object" ? message.text : message,
     isConyMessage: isConyMessage,
+    env: {
+      LINE_ACCESS_TOKEN_LENGTH: process.env.LINE_ACCESS_TOKEN
+        ? process.env.LINE_ACCESS_TOKEN.length
+        : "NOT SET",
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+    },
   });
 
   try {
@@ -38,19 +45,24 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
     if (messages.length <= MAX_MESSAGES_PER_REQUEST) {
       // Send all messages in one request
       try {
-        const response = await axios.post(
-          API_URLS.LINE_REPLY,
-          {
-            replyToken: replyToken,
-            messages: messages,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env.LINE_ACCESS_TOKEN}`,
-            },
-          }
+        console.log(
+          "Sending LINE API request with token:",
+          replyToken.substring(0, 5) + "..."
         );
+        console.log("LINE API URL:", API_URLS.LINE_REPLY);
+
+        const requestData = {
+          replyToken: replyToken,
+          messages: messages,
+        };
+        console.log("Request data:", JSON.stringify(requestData, null, 2));
+
+        const response = await axios.post(API_URLS.LINE_REPLY, requestData, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.LINE_ACCESS_TOKEN}`,
+          },
+        });
         console.log(
           "Successfully sent reply to LINE. Response:",
           JSON.stringify(response.data, null, 2)
@@ -61,6 +73,7 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
           statusText: lineError.response?.statusText,
           data: lineError.response?.data,
           message: lineError.message,
+          stack: lineError.stack,
           requestPayload: {
             replyToken: replyToken,
             messages: messages,
