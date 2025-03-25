@@ -55,6 +55,16 @@ function processDifyMessage(difyMessage) {
     // Don't remove type from the text anymore
   }
 
+  // Check for type in the JSON data itself (in case it's not specified separately)
+  // This will look for type directly in the JSON objects
+  const jsonTypeRegex = /"type":\s*"(income|expense)"/;
+  const jsonTypeMatch = difyMessage.match(jsonTypeRegex);
+
+  if (jsonTypeMatch && !typeMatch) {
+    transactionType = jsonTypeMatch[1];
+    console.log("Extracted transaction type from JSON data:", transactionType);
+  }
+
   // Just clean up trailing commas and extra whitespace
   remainingText = difyMessage.trim();
 
@@ -95,11 +105,11 @@ function processDifyMessage(difyMessage) {
             record_id = "";
           }
 
-          // Add record ID and transaction type to each record
+          // Add record ID and use record's own type if present, otherwise use the extracted transactionType
           const recordWithId = {
             ...record,
             record_id: record_id,
-            type: transactionType,
+            type: record.type || transactionType, // Prefer record's own type if available
           };
 
           // If is_fixed is not present, set a default value
@@ -131,11 +141,11 @@ function processDifyMessage(difyMessage) {
           record_id = recordIds[0] || "";
         }
 
-        // Add record ID and transaction type to the record
+        // Add record ID and use record's own type if present, otherwise use the extracted transactionType
         const recordWithId = {
           ...jsonObject,
           record_id: record_id,
-          type: transactionType,
+          type: jsonObject.type || transactionType, // Prefer record's own type if available
         };
 
         // If is_fixed is not present, set a default value
@@ -183,11 +193,11 @@ function processDifyMessage(difyMessage) {
             record_id = "";
           }
 
-          // Add record ID and transaction type to each record
+          // Add record ID and use record's own type if present, otherwise use the extracted transactionType
           const recordWithId = {
             ...record,
             record_id: record_id,
-            type: transactionType,
+            type: record.type || transactionType, // Prefer record's own type if available
           };
 
           // If is_fixed is not present, set a default value
@@ -220,9 +230,9 @@ function processDifyMessage(difyMessage) {
             record_id = recordIds[0] || "";
           }
 
-          // Add record ID and transaction type
+          // Add record ID and use record's own type if present, otherwise use the extracted transactionType
           jsonData.record_id = record_id;
-          jsonData.type = transactionType;
+          jsonData.type = jsonData.type || transactionType; // Prefer record's own type if available
 
           // If is_fixed is not present, set a default value
           if (jsonData.is_fixed === undefined) {
@@ -265,7 +275,7 @@ function processDifyMessage(difyMessage) {
             user_id: exactMatch[5],
             datetime: exactMatch[6],
             record_id: record_id, // Add the record ID to the data
-            type: transactionType, // Add the transaction type to the data
+            type: transactionType, // Use the extracted transaction type
           };
 
           console.log("Extracted data using exact format match:", jsonData);
@@ -337,15 +347,15 @@ function cleanMessageText(message) {
     ""
   );
 
-  // Remove type information completely - e.g., [{"type": "expense"}]
-  cleanedText = cleanedText.replace(
-    /\[\s*\{\s*"type"\s*:\s*"[^"]+"\s*\}\s*\](?:\s*,\s*)?/g,
-    ""
-  );
+  // We no longer remove type information - keep it in the message
+  // cleanedText = cleanedText.replace(
+  //   /\[\s*\{\s*"type"\s*:\s*"[^"]+"\s*\}\s*\](?:\s*,\s*)?/g,
+  //   ""
+  // );
 
-  // Remove any ID-type combined pattern - e.g., [{"id":803}],[{"type": "expense"}]
+  // Remove only ID part from ID-type combined pattern - e.g., [{"id":803}],[{"type": "expense"}]
   cleanedText = cleanedText.replace(
-    /\[\s*\{\s*"id"\s*:\s*\d+\s*\}\s*\]\s*,\s*\[\s*\{\s*"type"\s*:\s*"[^"]+"\s*\}\s*\]/g,
+    /\[\s*\{\s*"id"\s*:\s*\d+\s*\}\s*\]\s*,/g,
     ""
   );
 
@@ -354,17 +364,6 @@ function cleanMessageText(message) {
 
   // Remove any bracket patterns with commas inside - e.g., [, ]
   cleanedText = cleanedText.replace(/\[\s*,\s*\]/g, "");
-
-  // Remove any remaining square bracket patterns
-  cleanedText = cleanedText.replace(/\[\s*[^\]]*\]/g, "");
-
-  // Remove trailing commas
-  cleanedText = cleanedText.replace(/,\s*$/g, "");
-
-  // Remove any remaining empty code blocks
-  cleanedText = cleanedText.replace(/```\s*```/g, "");
-  cleanedText = cleanedText.replace(/```json\s*```/g, "");
-  cleanedText = cleanedText.replace(/```/g, "");
 
   // Clean up multiple spaces, newlines and trim
   cleanedText = cleanedText.replace(/\s+/g, " ").trim();

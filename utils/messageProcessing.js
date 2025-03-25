@@ -63,10 +63,25 @@ function createMessagesFromResponse(response, isConyMessage = false) {
       if (processedMessage.type === "tutorial") {
         // For tutorial messages, use different alt text for each part
         altText = index === 0 ? "🍍旺來新手教學 (上)" : "🍍旺來新手教學 (下)";
-      } else if (processedMessage.type === "income") {
-        altText = "已為您記錄收入！";
-      } else if (processedMessage.type === "expense") {
-        altText = "已為您記錄支出！";
+      } else {
+        // For transaction records, check the pill text to determine if it's income or expense
+        // The pill text is in the first box's second item's contents first item
+        try {
+          const pillText =
+            flexMessage.body.contents[0].contents[1].contents[0].text;
+          if (pillText.includes("收入")) {
+            altText = "已為您記錄收入！";
+          } else if (pillText.includes("支出")) {
+            altText = "已為您記錄支出！";
+          }
+        } catch (error) {
+          // Fallback to the global type if we can't extract from flexMessage structure
+          if (processedMessage.type === "income") {
+            altText = "已為您記錄收入！";
+          } else if (processedMessage.type === "expense") {
+            altText = "已為您記錄支出！";
+          }
+        }
       }
 
       // Properly format the Flex Message with the required wrapper structure
