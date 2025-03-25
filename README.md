@@ -1,72 +1,93 @@
-# LINE Chatbot with Dify Integration
+# LINE Bot Server
 
-This is a Node.js application that integrates LINE Messaging API with Dify AI to create an intelligent chatbot.
+A modular LINE bot server with Dify integration, Cloudinary for media handling, and OpenAI Transcription API for audio transcription.
 
-## Prerequisites
+## Project Structure
 
-- Node.js (v14 or higher)
-- LINE Messaging API credentials
-- Dify API credentials
+The project uses a modular architecture for better maintainability and separation of concerns:
+
+```
+.
+├── app.js                      # Express app setup
+├── config.js                   # Configuration settings and constants
+├── controllers/                # API endpoint controllers
+│   ├── adminController.js      # Admin operations
+│   └── webhookController.js    # Webhook endpoint logic
+├── middleware/                 # Express middleware
+│   └── lineVerification.js     # LINE message signature verification
+├── routes/                     # API routes
+│   └── index.js                # Route definitions
+├── services/                   # External API integrations
+│   ├── cloudinaryService.js    # Cloudinary media handling
+│   ├── difyService.js          # Dify API integration
+│   ├── lineService.js          # LINE API integration
+│   └── audioService.js         # OpenAI 語音轉文字 API integration
+├── templates/                  # Message templates
+│   ├── transaction_record.json         # Transaction record template
+│   ├── tutorial_part1.json             # Tutorial part 1 template
+│   ├── tutorial_part2.json             # Tutorial part 2 template
+│   ├── expense_record.json             # Basic expense record template
+│   ├── product_carousel.json           # Product carousel template
+│   └── savings_jar.json                # Savings jar template
+├── utils/                      # Utility functions
+│   ├── difyMessageProcessor.js # Dify message processing
+│   ├── flexMessage.js          # Flex Message creation
+│   ├── messageProcessing.js    # Message processing utilities
+│   └── tutorialMessage.js      # Tutorial message creation
+├── server.js                   # Entry point
+├── package.json                # Project metadata and dependencies
+└── .env                        # Environment variables (not committed)
+```
 
 ## Setup
 
-1. Clone this repository
+1. Clone the repository
 2. Install dependencies:
-
-   ```bash
+   ```
    npm install
    ```
-
-3. Configure environment variables:
-
-   - Copy `.env.example` to `.env`
-   - Fill in your credentials:
-     - LINE_CHANNEL_SECRET: Your LINE Channel Secret
-     - LINE_ACCESS_TOKEN: Your LINE Channel Access Token
-     - DIFY_API_KEY: Your Dify API Key
-     - DIFY_APP_ID: Your Dify Application ID
-
-4. Start the server:
-
-   ```bash
-   node server.js
+3. Create a `.env` file with the following variables:
    ```
-
-5. Set up LINE Webhook:
-   - Go to LINE Developers Console
-   - Set Webhook URL to your server URL + /webhook
-     (e.g., https://your-domain.com/webhook)
-   - Enable webhook
+   PORT=3000
+   LINE_CHANNEL_SECRET=your_line_channel_secret
+   LINE_ACCESS_TOKEN=your_line_access_token
+   ADMIN_USER_ID=your_admin_user_id
+   DIFY_API_URL=your_dify_api_url
+   DIFY_API_KEY=your_dify_api_key
+   DIFY_APP_ID=your_dify_app_id
+   LIFF_ID=your_liff_id
+   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+   CLOUDINARY_API_KEY=your_cloudinary_api_key
+   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+   OPENAI_API_KEY=your_openai_api_key
+   ```
+4. Start the server:
+   ```
+   npm start
+   ```
+   Or for development with auto-restart:
+   ```
+   npm run dev
+   ```
 
 ## Features
 
-- Receives messages from LINE
-- Processes messages through Dify AI
-- Sends AI-generated responses back to LINE
-- Includes signature verification for security
-- Error handling and logging
+- **LINE Integration**: Processes LINE webhook events and sends replies
+- **Dify Integration**: Processes user messages with Dify AI
+- **Media Handling**: Processes image and audio attachments
+- **Audio Transcription**: Converts audio to text using OpenAI Transcription API
+- **Flex Messages**: Creates interactive record cards for expenses/income
+- **Admin Controls**: Special commands for administrators
+- **Tutorial Support**: Provides in-app tutorials
 
 ## API Endpoints
 
-- POST /webhook: LINE webhook endpoint
-- GET /health: Health check endpoint
+- `POST /webhook`: LINE webhook endpoint
+- `GET /health`: Health check endpoint
 
-## Error Handling
+## Working with the Code
 
-The application includes error handling for:
-
-- LINE API errors
-- Dify API errors
-- Invalid webhook signatures
-- General server errors
-
-## Deployment
-
-You can deploy this application to any Node.js hosting platform like:
-
-- Render
-- Railway
-- Heroku
-- Google Cloud Run
-
-Make sure to set up your environment variables on your hosting platform.
+- To add new API endpoints, update `routes/index.js`
+- To modify webhook logic, update `controllers/webhookController.js`
+- To change how messages are processed, update the utilities in `utils/`
+- For template changes, modify templates in the `templates/` directory
