@@ -117,7 +117,7 @@
         "action": {
           "type": "uri",
           "label": "編輯",
-          "uri": "https://liff.line.me/2007052419-mZqnoGjP?recordId=${recordId}&type=${type}"
+          "uri": "https://liff.line.me/2007052419-mZqnoGjP?recordId=${recordId}"
         },
         "contents": [
           {
@@ -148,4 +148,4 @@
       "backgroundColor": "#FFFFFF"
     }
   }
-} 
+}

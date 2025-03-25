@@ -362,8 +362,8 @@ function cleanMessageText(message) {
   // Remove any remaining empty brackets and comma combinations
   cleanedText = cleanedText.replace(/\[\s*\]\s*(?:,\s*\[\s*\])?/g, "");
 
-  // Remove any bracket patterns with commas inside - e.g., [, ]
-  cleanedText = cleanedText.replace(/\[\s*,\s*\]/g, "");
+  // Remove any bracket patterns with commas inside - e.g., [, ] or [, , ]
+  cleanedText = cleanedText.replace(/\[\s*(?:,\s*)*\]/g, "");
 
   // Clean up multiple spaces, newlines and trim
   cleanedText = cleanedText.replace(/\s+/g, " ").trim();

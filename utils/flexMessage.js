@@ -88,8 +88,7 @@ function createFlexMessage(data) {
         data.datetime || new Date().toISOString().split("T")[0]
       )
       .replace("${liffId}", process.env.LIFF_ID)
-      .replace("${recordId}", recordIdParam)
-      .replace("${type}", data.type || "expense"); // Add type parameter for the edit button
+      .replace("${recordId}", recordIdParam);
 
     // Parse the string back to JSON
     const flexMessage = JSON.parse(flexMessageString);
