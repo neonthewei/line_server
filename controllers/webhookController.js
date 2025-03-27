@@ -8,6 +8,11 @@ const {
 const { uploadImageToCloudinary } = require("../services/cloudinaryService");
 const { convertAudioToText } = require("../services/audioService");
 const { handleAdminCommand } = require("./adminController");
+const { extractSummaryData } = require("../utils/difyMessageProcessor");
+const {
+  createSummaryMessage,
+  createBalanceSummaryMessage,
+} = require("../utils/flexMessage");
 
 // 存儲已處理的 webhook event IDs
 const processedEvents = new Set();
@@ -61,11 +66,141 @@ async function handleWebhook(req, res) {
             response = adminResponse;
             // 管理員命令已處理，跳過後續處理
           } else {
-            // 檢查訊息是否包含Cony
-            isConyMessage = userMessage.includes("Cony");
+            // 檢查是否是"餘額"關鍵詞
+            const trimmedMessage = userMessage.trim();
 
-            // 發送到Dify處理，確保傳遞用戶 ID
-            response = await sendToDify(userMessage, userId);
+            if (trimmedMessage === "餘額") {
+              console.log(`收到餘額關鍵詞請求`);
+
+              try {
+                // 獲取月摘要數據
+                const summaryData = await extractSummaryData(
+                  "月結餘",
+                  "月結餘",
+                  userId
+                );
+
+                if (summaryData) {
+                  console.log("創建餘額摘要數據:", summaryData);
+
+                  // 創建簡化版的餘額摘要 Flex 訊息
+                  const balanceSummaryMessage =
+                    createBalanceSummaryMessage(summaryData);
+
+                  // 確保創建成功
+                  if (!balanceSummaryMessage) {
+                    console.error("無法創建餘額摘要 Flex 訊息");
+                    response = "抱歉，無法生成餘額摘要報告。";
+                    continue;
+                  }
+
+                  console.log("成功創建餘額摘要 Flex 訊息");
+
+                  // 創建回應
+                  response = {
+                    text: "", // 不顯示文本介紹
+                    flexMessages: [balanceSummaryMessage],
+                    type: "balance_summary",
+                    userId: userId,
+                  };
+
+                  console.log(`創建了餘額摘要 Flex 訊息，準備發送`);
+                } else {
+                  response = "抱歉，無法獲取您的餘額摘要數據。";
+                }
+              } catch (error) {
+                console.error("處理餘額關鍵詞時出錯:", error);
+                response = "抱歉，處理您的餘額請求時發生錯誤。";
+              }
+            }
+            // 檢查是否是直接的摘要關鍵詞請求
+            else if (
+              [
+                "日支出",
+                "日收入",
+                "週支出",
+                "週收入",
+                "月支出",
+                "月收入",
+              ].includes(trimmedMessage)
+            ) {
+              console.log(`收到直接摘要關鍵詞: ${trimmedMessage}`);
+
+              // 轉換為完整關鍵詞格式 (添加 "總結")
+              const fullKeyword = `${trimmedMessage}總結`;
+
+              try {
+                // 使用 extractSummaryData 和 createSummaryMessage 獲取摘要數據
+                const summaryData = await extractSummaryData(
+                  fullKeyword,
+                  fullKeyword,
+                  userId
+                );
+
+                if (summaryData) {
+                  console.log("創建摘要數據:", summaryData);
+
+                  // 創建摘要 Flex 訊息
+                  const summaryFlexMessage = createSummaryMessage(summaryData);
+
+                  // 確保創建成功
+                  if (!summaryFlexMessage) {
+                    console.error("無法創建摘要 Flex 訊息");
+                    response = "抱歉，無法生成摘要報告。";
+                    continue;
+                  }
+
+                  console.log(
+                    "成功創建摘要 Flex 訊息，長度:",
+                    JSON.stringify(summaryFlexMessage).length
+                  );
+
+                  // 根據期間類型生成適合的回應文本
+                  const periodMatch = /^(日|週|月)/.exec(trimmedMessage);
+                  const periodType = periodMatch ? periodMatch[1] : "";
+                  const transactionType = /支出|收入/.exec(trimmedMessage)[0];
+
+                  // 獲取台灣時間的當前日期
+                  const options = {
+                    timeZone: "Asia/Taipei",
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  };
+                  const taiwanDate = new Date().toLocaleString(
+                    "zh-TW",
+                    options
+                  );
+
+                  // 不再生成回應文字
+                  // const responseText = `這是您的本${periodType}${transactionType}報告 (${taiwanDate})`;
+
+                  // 創建彈性訊息作為回應，文本設為空字符串
+                  response = {
+                    text: "", // 設置為空字符串，不發送文本介紹
+                    flexMessages: [summaryFlexMessage],
+                    type: "summary",
+                    userId: userId,
+                  };
+
+                  // 更明確的日誌
+                  console.log(
+                    `創建了摘要 Flex 訊息，無文本介紹，僅發送 Flex 消息`
+                  );
+                } else {
+                  response = "抱歉，無法獲取您請求的摘要數據。";
+                }
+              } catch (error) {
+                console.error("處理摘要關鍵詞時出錯:", error);
+                response = "抱歉，處理您的摘要請求時發生錯誤。";
+              }
+            } else {
+              // 檢查訊息是否包含Cony
+              isConyMessage = userMessage.includes("Cony");
+
+              // 發送到Dify處理，確保傳遞用戶 ID
+              response = await sendToDify(userMessage, userId);
+            }
           }
         } else if (event.message.type === "image") {
           // 處理圖片訊息

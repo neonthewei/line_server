@@ -576,7 +576,246 @@ function createSummaryMessage(data) {
   }
 }
 
+/**
+ * Function to create a simplified Balance Summary Flex Message with only the top part
+ */
+function createBalanceSummaryMessage(data) {
+  console.log(
+    "Creating Balance Summary Flex Message with data:",
+    JSON.stringify({
+      title: data.title || "月結餘",
+      income: data.income,
+      expense: data.expense,
+      balance: data.balance,
+    })
+  );
+
+  try {
+    // 使用標準的 summary.json 模板
+    const templatePath = path.join(
+      __dirname,
+      "..",
+      "templates",
+      "summary.json"
+    );
+    const templateString = fs.readFileSync(templatePath, "utf8");
+
+    // 設置標題為「月結餘」
+    let title = data.title || "月結餘";
+    let periodPrefix = "月"; // 默認使用「月」作為前綴
+
+    // 如果標題中包含期間前綴和交易類型，提取期間前綴並將標題格式化為「X結餘」
+    const periodMatch = title.match(/(日|週|周|月)([收支入出]+)/);
+    if (periodMatch) {
+      // 獲取期間前綴
+      periodPrefix = periodMatch[1] === "周" ? "週" : periodMatch[1]; // 標準化「周」為「週」
+      // 重新格式化為「X結餘」格式，而不是「X支出總結」
+      title = `${periodPrefix}結餘`;
+    } else if (title === "月結餘") {
+      // 如果標題已經是「月結餘」，確保 periodPrefix 設置為「月」
+      periodPrefix = "月";
+    }
+
+    console.log(`Final title for Balance Summary: ${title}`);
+
+    // 創建收入和支出標籤
+    const incomeLabel = `${periodPrefix}收`;
+    const expenseLabel = `${periodPrefix}支`;
+
+    // 處理金額值
+    let incomeValue = data.income || "$ 0";
+    let expenseValue = data.expense || "$ 0";
+    let balanceValue = data.balance || "$ 0";
+
+    // 替換模板中的佔位符
+    let flexMessageString = templateString
+      .replace("${TITLE}", title)
+      .replace("${BALANCE_VALUE}", balanceValue)
+      .replace("${INCOME_VALUE}", incomeValue)
+      .replace("${EXPENSE_VALUE}", expenseValue)
+      .replace("${ANALYSIS_TITLE}", "") // 不顯示分析標題
+      .replace(/"text": "收"/, `"text": "${incomeLabel}"`)
+      .replace(/"text": "支"/, `"text": "${expenseLabel}"`);
+
+    // 解析回 JSON
+    const flexMessage = JSON.parse(flexMessageString);
+
+    // 調整摘要 Flex 消息，只保留頂部的結餘、收入和支出部分
+    if (flexMessage.body.contents && flexMessage.body.contents.length > 0) {
+      // 只保留頂部結餘/收入/支出部分，完全移除分隔線和分析部分
+      flexMessage.body.contents = [flexMessage.body.contents[0]];
+
+      // 與標準摘要相同的樣式調整
+      const topSection = flexMessage.body.contents[0];
+
+      // 調整左側結餘數字
+      if (
+        topSection.contents[0].contents &&
+        topSection.contents[0].contents.length > 1
+      ) {
+        // 結餘標題容器
+        const titleContainer = topSection.contents[0].contents[0];
+        if (titleContainer.contents && titleContainer.contents.length > 0) {
+          const titleElement = titleContainer.contents[0];
+          titleElement.align = "start";
+          titleElement.margin = "none";
+          titleContainer.justifyContent = "flex-end";
+          titleContainer.alignItems = "center";
+          titleContainer.height = "18px";
+          titleContainer.paddingBottom = "0px";
+        }
+
+        // 結餘數字容器
+        const balanceContainer = topSection.contents[0].contents[1];
+        if (balanceContainer.contents && balanceContainer.contents.length > 0) {
+          const balanceElement = balanceContainer.contents[0];
+          balanceElement.adjustMode = "shrink-to-fit";
+          balanceElement.maxLines = 1;
+          balanceElement.size = "xxl";
+          balanceContainer.justifyContent = "flex-start";
+          balanceContainer.alignItems = "center";
+          balanceContainer.height = "18px";
+          balanceContainer.margin = "none";
+          balanceContainer.paddingTop = "0px";
+        }
+
+        topSection.contents[0].spacing = "none";
+        topSection.contents[0].height = "36px";
+        topSection.contents[0].paddingTop = "0px";
+        topSection.contents[0].paddingBottom = "0px";
+      }
+
+      // 調整右側收入和支出
+      if (topSection.contents[1].contents) {
+        // 調整收入
+        if (
+          topSection.contents[1].contents[0].contents &&
+          topSection.contents[1].contents[0].contents.length > 1
+        ) {
+          const incomeLabelElement =
+            topSection.contents[1].contents[0].contents[0];
+          incomeLabelElement.align = "start";
+          incomeLabelElement.margin = "xl";
+
+          const incomeElement = topSection.contents[1].contents[0].contents[1];
+          incomeElement.adjustMode = "shrink-to-fit";
+          incomeElement.maxLines = 1;
+          incomeElement.size = "md";
+          incomeElement.flex = 1;
+
+          topSection.contents[1].contents[0].height = "18px";
+          topSection.contents[1].contents[0].margin = "none";
+        }
+
+        // 調整支出
+        if (
+          topSection.contents[1].contents[1].contents &&
+          topSection.contents[1].contents[1].contents.length > 1
+        ) {
+          const expenseLabelElement =
+            topSection.contents[1].contents[1].contents[0];
+          expenseLabelElement.align = "start";
+          expenseLabelElement.margin = "xl";
+
+          const expenseElement = topSection.contents[1].contents[1].contents[1];
+          expenseElement.adjustMode = "shrink-to-fit";
+          expenseElement.maxLines = 1;
+          expenseElement.size = "md";
+          expenseElement.flex = 1;
+
+          topSection.contents[1].contents[1].height = "18px";
+          topSection.contents[1].contents[1].margin = "none";
+        }
+
+        topSection.contents[1].flex = 2;
+        topSection.contents[1].paddingStart = "12px";
+        topSection.contents[1].spacing = "none";
+        topSection.contents[1].height = "36px";
+        topSection.contents[1].paddingTop = "0px";
+        topSection.contents[1].paddingBottom = "0px";
+      }
+
+      // 調整整體頂部區域
+      topSection.height = "48px";
+      topSection.paddingBottom = "0px"; // 移除底部間距，因為已經沒有分隔線了
+
+      // 調整底部間距
+      flexMessage.body.paddingBottom = "12px";
+    }
+
+    console.log("Balance Summary Flex Message created successfully");
+    return flexMessage;
+  } catch (error) {
+    console.error("Error creating Balance Summary Flex Message:", error);
+    // 返回一個簡單的後備消息
+    return {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "月結餘",
+            weight: "bold",
+            size: "md",
+          },
+          {
+            type: "text",
+            text: data.balance || "$ 0",
+            size: "xl",
+            weight: "bold",
+            margin: "md",
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            margin: "md",
+            contents: [
+              {
+                type: "text",
+                text: "月收入:",
+                size: "sm",
+                color: "#555555",
+                flex: 1,
+              },
+              {
+                type: "text",
+                text: data.income || "$ 0",
+                size: "sm",
+                color: "#111111",
+                align: "end",
+              },
+            ],
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              {
+                type: "text",
+                text: "月支出:",
+                size: "sm",
+                color: "#555555",
+                flex: 1,
+              },
+              {
+                type: "text",
+                text: data.expense || "$ 0",
+                size: "sm",
+                color: "#111111",
+                align: "end",
+              },
+            ],
+          },
+        ],
+      },
+    };
+  }
+}
+
 module.exports = {
   createFlexMessage,
   createSummaryMessage,
+  createBalanceSummaryMessage,
 };

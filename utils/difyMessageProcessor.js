@@ -1,4 +1,8 @@
-const { createFlexMessage, createSummaryMessage } = require("./flexMessage");
+const {
+  createFlexMessage,
+  createSummaryMessage,
+  createBalanceSummaryMessage,
+} = require("./flexMessage");
 const { createTutorialMessage } = require("./tutorialMessage");
 const { getTransactionData } = require("./supabaseUtils");
 
@@ -10,6 +14,9 @@ async function processDifyMessage(difyMessage, lineUserId = "default_user") {
   console.log("Original message length:", difyMessage ? difyMessage.length : 0);
   console.log("LINE user ID:", lineUserId);
 
+  // 如果 difyMessage 是 null 或 undefined，設置為空字串
+  difyMessage = difyMessage || "";
+
   // Check if message is exactly "教學文檔" (Tutorial Document)
   if (
     (difyMessage && difyMessage.trim() === "教學文檔") ||
@@ -20,6 +27,76 @@ async function processDifyMessage(difyMessage, lineUserId = "default_user") {
     return createTutorialMessage();
   }
 
+  // 檢查消息是否是"餘額"，如果是則返回簡化版摘要
+  if (difyMessage.trim() === "餘額") {
+    console.log("餘額關鍵詞檢測到，創建簡化版月結餘摘要");
+    try {
+      // 獲取月摘要數據
+      const summaryData = await extractSummaryData(
+        "月結餘",
+        "月結餘",
+        lineUserId
+      );
+
+      if (summaryData) {
+        // 創建簡化版摘要
+        const balanceSummaryMessage = createBalanceSummaryMessage(summaryData);
+
+        if (balanceSummaryMessage) {
+          console.log("成功創建餘額摘要 Flex 訊息");
+          return {
+            text: "", // 不顯示文本介紹
+            flexMessages: [balanceSummaryMessage],
+            type: "balance_summary",
+          };
+        } else {
+          console.error("無法創建餘額摘要 Flex 訊息");
+        }
+      }
+    } catch (error) {
+      console.error("創建餘額摘要時出錯:", error);
+    }
+  }
+
+  // 如果 difyMessage 只是空白或空字串，返回一個空的結果結構，但確保它有 flexMessages 陣列
+  if (!difyMessage || difyMessage.trim() === "") {
+    console.log("Empty message received, returning empty result structure");
+    return {
+      text: "",
+      flexMessages: [],
+      type: "text",
+    };
+  }
+
+  // 檢查訊息中是否包含"餘額"關鍵詞（不是完全匹配，而是包含）
+  if (difyMessage.includes("餘額") && !difyMessage.includes("總結")) {
+    console.log("檢測到訊息中包含「餘額」關鍵詞，創建簡化版月結餘摘要");
+    try {
+      // 獲取月摘要數據
+      const summaryData = await extractSummaryData(
+        "月結餘",
+        "月結餘",
+        lineUserId
+      );
+
+      if (summaryData) {
+        // 創建簡化版摘要
+        const balanceSummaryMessage = createBalanceSummaryMessage(summaryData);
+
+        if (balanceSummaryMessage) {
+          console.log("成功創建餘額摘要 Flex 訊息");
+          return {
+            text: cleanMessageText(difyMessage), // 保留原始訊息的文本部分
+            flexMessages: [balanceSummaryMessage],
+            type: "balance_summary",
+          };
+        }
+      }
+    } catch (error) {
+      console.error("創建餘額摘要時出錯:", error);
+    }
+  }
+
   // Check for summary-related keywords (日、週、月支出/收入總結)
   const summaryKeywords = [
     "日支出總結",
@@ -28,12 +105,6 @@ async function processDifyMessage(difyMessage, lineUserId = "default_user") {
     "週收入總結",
     "月支出總結",
     "月收入總結",
-    "日支出总结",
-    "日收入总结",
-    "周支出总结",
-    "周收入总结",
-    "月支出总结",
-    "月收入总结",
   ];
 
   // Try to extract summary data if keywords are detected
@@ -128,10 +199,25 @@ async function processDifyMessage(difyMessage, lineUserId = "default_user") {
           // Add "本" before the period type
           const customMessage = `以下是本${periodType} ${dateRangeText}的分析`;
 
+          // 創建摘要訊息
+          const summaryFlexMessage = createSummaryMessage(summaryData);
+
+          // 確保 summaryFlexMessage 是有效的對象
+          if (summaryFlexMessage) {
+            console.log("成功創建摘要 Flex 訊息");
+          } else {
+            console.error("無法創建摘要 Flex 訊息");
+            return {
+              text: "抱歉，無法生成摘要報告。",
+              flexMessages: [],
+              type: "text",
+            };
+          }
+
           // Return the formatted summary response with the custom message
           return {
-            text: "", // Empty text to remove the text message
-            flexMessages: [createSummaryMessage(summaryData)],
+            text: "", // 設置為空文本，不發送文本介紹
+            flexMessages: [summaryFlexMessage],
             type: "summary",
           };
         }
@@ -516,18 +602,31 @@ async function extractSummaryData(text, keyword, lineUserId = "default_user") {
   console.log(`Period type detected: ${periodType}`);
   console.log(`Using LINE user ID: ${lineUserId}`);
 
-  // Determine transaction type from keyword
-  const transactionTypeMatch = /支出|收入/.exec(keyword);
-  const transactionType = transactionTypeMatch
-    ? transactionTypeMatch[0] === "支出"
-      ? "支出"
-      : "收入"
-    : "支出"; // Default to expense if not found
+  // 檢查是否是「結餘」關鍵詞
+  const isBalanceKeyword = keyword.includes("結餘");
+
+  // Determine transaction type from keyword, 除非是「結餘」關鍵詞
+  let transactionType = "支出"; // 默認為支出
+  if (!isBalanceKeyword) {
+    const transactionTypeMatch = /支出|收入/.exec(keyword);
+    if (transactionTypeMatch) {
+      transactionType = transactionTypeMatch[0] === "支出" ? "支出" : "收入";
+    }
+  }
 
   console.log(`Transaction type detected: ${transactionType}`);
 
-  // Set a generic title based on the period and transaction type
-  const title = `${periodType}${transactionType}總結`;
+  // Set title based on keyword type
+  let title;
+  if (isBalanceKeyword || keyword === "月結餘") {
+    // 如果是「結餘」關鍵詞或直接是「月結餘」，設置為「X結餘」
+    title = `${periodType}結餘`;
+    console.log(`Using balance title: ${title}`);
+  } else {
+    // 否則使用傳統的「X支出/收入總結」格式
+    title = `${periodType}${transactionType}總結`;
+    console.log(`Using transaction title: ${title}`);
+  }
 
   // Default values - will be overridden by extracted or Supabase data
   let incomeValue = null;

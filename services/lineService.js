@@ -12,6 +12,16 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
   });
 
   try {
+    // 檢查消息中是否包含 flexMessages
+    if (typeof message === "object" && message.flexMessages) {
+      console.log(`消息包含 ${message.flexMessages.length} 個 Flex 消息`);
+      if (message.flexMessages.length > 0) {
+        console.log(
+          `第一個 Flex 消息類型: ${message.flexMessages[0].type || "未知"}`
+        );
+      }
+    }
+
     // 使用 createMessagesFromResponse 函數創建訊息
     // 這可以確保所有訊息都會遵循相同的格式，包括添加 Quick Reply
     // 因為 createMessagesFromResponse 現在是非同步的，我們需要使用 await
@@ -24,6 +34,13 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
     }
 
     console.log(`準備發送 ${messages.length} 條訊息給用戶`);
+    // 輸出更多訊息類型信息，幫助診斷
+    messages.forEach((msg, index) => {
+      console.log(`訊息 #${index + 1} 類型: ${msg.type}`);
+      if (msg.type === "flex") {
+        console.log(`Flex 訊息 #${index + 1} altText: ${msg.altText}`);
+      }
+    });
 
     // Extract userId from message if it's an object (for push messaging if needed)
     const userId = typeof message === "object" ? message.userId : null;
