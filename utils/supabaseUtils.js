@@ -185,10 +185,11 @@ async function getTransactionData(lineUserId, periodType) {
         return recordDate === todayStr;
       });
     } else if (periodType === "週") {
-      // 計算本週的開始日期（週日）
+      // 計算本週的開始日期（週一）
       const weekStart = new Date(today);
-      const day = weekStart.getDay(); // 0 是週日, 6 是週六
-      weekStart.setDate(weekStart.getDate() - day);
+      const day = weekStart.getDay(); // 0 是週日, 1 是週一, ..., 6 是週六
+      // 調整為週一開始: 若當天為週日 (0)，向後減 6 天；否則，減去 (當天 - 1) 天
+      weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1));
 
       // 格式化為 YYYY-MM-DD
       const weekStartYear = weekStart.getFullYear();

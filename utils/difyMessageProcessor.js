@@ -176,11 +176,14 @@ async function processDifyMessage(difyMessage, lineUserId = "default_user") {
           let dateRangeText = formattedDate; // Default for "日"
 
           if (periodType === "週") {
-            // Calculate start of week (Sunday)
+            // Calculate start of week (Monday)
             const today = new Date(`${year}-${month}-${day}T00:00:00Z`);
             const weekStart = new Date(today);
-            const dayOfWeek = weekStart.getDay(); // 0 is Sunday, 6 is Saturday
-            weekStart.setDate(weekStart.getDate() - dayOfWeek);
+            const dayOfWeek = weekStart.getDay(); // 0 is Sunday, 1 is Monday, ..., 6 is Saturday
+            // If today is Sunday (0), go back 6 days, otherwise go back (current day - 1) days
+            weekStart.setDate(
+              weekStart.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+            );
 
             const weekStartYear = weekStart.getFullYear();
             const weekStartMonth = String(weekStart.getMonth() + 1).padStart(
