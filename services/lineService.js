@@ -5,34 +5,25 @@ const { API_URLS, LINE_MESSAGE_LIMITS } = require("../config");
  * Send reply to LINE
  */
 async function replyToLine(replyToken, message, isConyMessage = false) {
-  console.log("Sending reply to LINE:", {
-    replyToken: replyToken,
-    message: typeof message === "object" ? message.text : message,
+  console.log("準備回覆給 LINE 用戶", {
+    replyToken: replyToken.substring(0, 5) + "...",
+    messageType: typeof message === "object" ? "object" : "string",
     isConyMessage: isConyMessage,
-    env: {
-      LINE_ACCESS_TOKEN_LENGTH: process.env.LINE_ACCESS_TOKEN
-        ? process.env.LINE_ACCESS_TOKEN.length
-        : "NOT SET",
-      NODE_ENV: process.env.NODE_ENV,
-      VERCEL_ENV: process.env.VERCEL_ENV,
-    },
   });
 
   try {
     // 使用 createMessagesFromResponse 函數創建訊息
     // 這可以確保所有訊息都會遵循相同的格式，包括添加 Quick Reply
-    const messages = createMessagesFromResponse(message, isConyMessage);
+    // 因為 createMessagesFromResponse 現在是非同步的，我們需要使用 await
+    const messages = await createMessagesFromResponse(message, isConyMessage);
 
     // If no messages to send, return early
     if (messages.length === 0) {
-      console.log("No messages to send");
+      console.log("沒有訊息需要發送");
       return;
     }
 
-    console.log(
-      "Sending messages to LINE API:",
-      JSON.stringify(messages, null, 2)
-    );
+    console.log(`準備發送 ${messages.length} 條訊息給用戶`);
 
     // Extract userId from message if it's an object (for push messaging if needed)
     const userId = typeof message === "object" ? message.userId : null;
@@ -45,17 +36,12 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
     if (messages.length <= MAX_MESSAGES_PER_REQUEST) {
       // Send all messages in one request
       try {
-        console.log(
-          "Sending LINE API request with token:",
-          replyToken.substring(0, 5) + "..."
-        );
-        console.log("LINE API URL:", API_URLS.LINE_REPLY);
+        console.log(`使用回覆令牌 ${replyToken.substring(0, 5)}... 發送訊息`);
 
         const requestData = {
           replyToken: replyToken,
           messages: messages,
         };
-        console.log("Request data:", JSON.stringify(requestData, null, 2));
 
         const response = await axios.post(API_URLS.LINE_REPLY, requestData, {
           headers: {
@@ -63,29 +49,19 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
             Authorization: `Bearer ${process.env.LINE_ACCESS_TOKEN}`,
           },
         });
-        console.log(
-          "Successfully sent reply to LINE. Response:",
-          JSON.stringify(response.data, null, 2)
-        );
+        console.log("成功回覆 LINE 用戶");
       } catch (lineError) {
-        console.error("LINE API Error Details:", {
+        console.error("LINE API 錯誤:", {
           status: lineError.response?.status,
           statusText: lineError.response?.statusText,
           data: lineError.response?.data,
           message: lineError.message,
-          stack: lineError.stack,
-          requestPayload: {
-            replyToken: replyToken,
-            messages: messages,
-          },
         });
         throw lineError;
       }
     } else {
       // Split messages into chunks of MAX_MESSAGES_PER_REQUEST
-      console.log(
-        `Splitting ${messages.length} messages into multiple requests`
-      );
+      console.log(`訊息數量超過限制，將分為多個請求發送`);
 
       // Send the first chunk using reply API
       const firstChunk = messages.slice(0, MAX_MESSAGES_PER_REQUEST);
@@ -103,15 +79,11 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
             },
           }
         );
-        console.log(
-          "Successfully sent first chunk to LINE. Response:",
-          JSON.stringify(response.data, null, 2)
-        );
+        console.log("成功發送第一批訊息");
       } catch (lineError) {
-        console.error("LINE API Error Details for first chunk:", {
+        console.error("發送第一批訊息時出錯:", {
           status: lineError.response?.status,
           statusText: lineError.response?.statusText,
-          data: lineError.response?.data,
           message: lineError.message,
         });
         throw lineError;
@@ -119,7 +91,7 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
 
       // For remaining messages, use push API
       if (!userId) {
-        console.error("Cannot send remaining messages: No user ID available");
+        console.error("無法發送剩餘訊息: 沒有用戶 ID");
         return;
       }
 
@@ -144,21 +116,12 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
               },
             }
           );
-          console.log(
-            `Successfully sent chunk ${
-              i / MAX_MESSAGES_PER_REQUEST + 1
-            } to LINE. Response:`,
-            JSON.stringify(response.data, null, 2)
-          );
+          console.log(`成功發送第 ${i / MAX_MESSAGES_PER_REQUEST + 1} 批訊息`);
         } catch (lineError) {
           console.error(
-            `LINE API Error Details for chunk ${
-              i / MAX_MESSAGES_PER_REQUEST + 1
-            }:`,
+            `發送第 ${i / MAX_MESSAGES_PER_REQUEST + 1} 批訊息時出錯:`,
             {
               status: lineError.response?.status,
-              statusText: lineError.response?.statusText,
-              data: lineError.response?.data,
               message: lineError.message,
             }
           );
@@ -167,10 +130,9 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
       }
     }
   } catch (error) {
-    console.error("LINE API Error:", {
+    console.error("LINE API 錯誤:", {
       error: error.response?.data || error.message,
       status: error.response?.status,
-      config: error.config,
     });
   }
 }
@@ -179,17 +141,12 @@ async function replyToLine(replyToken, message, isConyMessage = false) {
  * Display loading indicator in LINE chat
  */
 async function displayLoadingIndicator(userId) {
-  console.log("Displaying loading indicator for user:", userId);
+  console.log("顯示加載指示器，用戶 ID:", userId.substring(0, 5) + "...");
   try {
     const requestBody = {
       chatId: userId,
       loadingSeconds: 30, // Display loading for 30 seconds or until a message is sent
     };
-
-    console.log(
-      "Loading indicator request body:",
-      JSON.stringify(requestBody, null, 2)
-    );
 
     const response = await axios.post(API_URLS.LINE_LOADING, requestBody, {
       headers: {
@@ -198,19 +155,13 @@ async function displayLoadingIndicator(userId) {
       },
     });
 
-    console.log("Loading indicator response:", {
-      status: response.status,
-      statusText: response.statusText,
-      data: response.data,
-    });
-
-    console.log("Loading indicator displayed successfully");
+    if (response.status === 200) {
+      console.log("成功顯示加載指示器");
+    }
   } catch (error) {
-    console.error("Error displaying loading indicator:", {
-      error: error.response?.data || error.message,
+    console.error("顯示加載指示器時出錯:", {
       status: error.response?.status,
-      headers: error.response?.headers,
-      config: error.config,
+      message: error.message,
     });
   }
 }

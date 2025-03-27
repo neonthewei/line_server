@@ -27,17 +27,19 @@ setInterval(() => {
  */
 async function handleWebhook(req, res) {
   try {
-    console.log("Processing webhook request");
+    console.log("處理 webhook 請求");
     const events = req.body.events;
 
     for (const event of events) {
       // 檢查是否已處理過此事件
       if (event.webhookEventId && processedEvents.has(event.webhookEventId)) {
-        console.log("Skipping duplicate event:", event.webhookEventId);
+        console.log("跳過重複事件:", event.webhookEventId);
         continue;
       }
 
-      console.log("Processing event:", JSON.stringify(event, null, 2));
+      console.log(
+        `處理事件 ID: ${event.webhookEventId || "無ID"}, 類型: ${event.type}`
+      );
 
       if (event.type === "message") {
         const userId = event.source.userId;
@@ -51,7 +53,7 @@ async function handleWebhook(req, res) {
         if (event.message.type === "text") {
           // 處理文字訊息
           const userMessage = event.message.text;
-          console.log("Received text message:", userMessage);
+          console.log(`收到文字訊息 (${userMessage.length} 字元)`);
 
           // 處理管理員命令
           const adminResponse = await handleAdminCommand(userMessage, userId);
@@ -62,58 +64,57 @@ async function handleWebhook(req, res) {
             // 檢查訊息是否包含Cony
             isConyMessage = userMessage.includes("Cony");
 
-            // 發送到Dify處理
+            // 發送到Dify處理，確保傳遞用戶 ID
             response = await sendToDify(userMessage, userId);
           }
         } else if (event.message.type === "image") {
           // 處理圖片訊息
-          console.log("Received image message");
+          console.log("收到圖片訊息");
 
           try {
             // 1. 從LINE獲取圖片內容
             const imageContent = await getLineContent(event.message.id);
             console.log(
-              "Image content received, size:",
+              "已獲取圖片內容，大小:",
               Buffer.byteLength(imageContent),
-              "bytes"
+              "字節"
             );
 
             // 2. 上傳圖片到Cloudinary
             const imageUrl = await uploadImageToCloudinary(imageContent);
-            console.log("Image uploaded, URL:", imageUrl);
+            console.log("圖片已上傳");
 
             // 3. 發送圖片URL到Dify
             response = await sendToDify(null, userId, imageUrl);
-            console.log("Dify response received:", response);
+            console.log("已收到 Dify 回應");
           } catch (error) {
-            console.error("Error processing image:", error);
+            console.error("處理圖片時發生錯誤:", error);
             response = "抱歉，處理圖片時發生錯誤";
           }
         } else if (event.message.type === "audio") {
           // 處理語音訊息
-          console.log("Received audio message");
-          console.log("Audio message details:", {
-            id: event.message.id,
-            duration: event.message.duration,
-            contentProvider: event.message.contentProvider,
-          });
+          console.log("收到語音訊息");
+          console.log("語音訊息長度:", event.message.duration, "毫秒");
 
           try {
             // 1. 從LINE獲取語音內容
             const audioContent = await getLineContent(event.message.id);
             console.log(
-              "Audio content received, size:",
+              "已獲取語音內容，大小:",
               Buffer.byteLength(audioContent),
-              "bytes"
+              "字節"
             );
-            console.log("Audio content type:", typeof audioContent);
 
             // 2. 使用 OpenAI 語音轉文字 API 進行轉錄
             const transcribedText = await convertAudioToText(
               audioContent,
               userId
             );
-            console.log("Transcribed text:", transcribedText);
+            console.log(
+              "語音轉文字結果長度:",
+              transcribedText ? transcribedText.length : 0,
+              "字元"
+            );
 
             // 3. 如果成功轉換為文字，發送到Dify處理
             if (transcribedText) {
@@ -130,7 +131,7 @@ async function handleWebhook(req, res) {
               response = "抱歉，無法識別您的語音訊息，請再試一次。";
             }
           } catch (error) {
-            console.error("Error processing audio:", error);
+            console.error("處理語音訊息時發生錯誤:", error);
             response = "抱歉，處理語音訊息時發生錯誤";
           }
         }
@@ -154,10 +155,10 @@ async function handleWebhook(req, res) {
             // 使用 replyToLine 函數通過 reply API 回覆用戶
             // 注意：displayLoadingIndicator 不會消耗 replyToken
             await replyToLine(replyToken, responseWithUserId, isConyMessage);
-            console.log("Successfully replied to LINE using replyToken");
+            console.log("成功使用 replyToken 回覆 LINE 用戶");
           } catch (error) {
             console.error(
-              "Error sending message to LINE:",
+              "發送訊息到 LINE 時出錯:",
               error.response?.data || error.message
             );
           }
@@ -172,7 +173,7 @@ async function handleWebhook(req, res) {
 
     res.status(200).end();
   } catch (error) {
-    console.error("Error processing webhook:", error);
+    console.error("處理 webhook 時發生錯誤:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }

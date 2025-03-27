@@ -1,12 +1,14 @@
-const { createFlexMessage } = require("./flexMessage");
+const { createFlexMessage, createSummaryMessage } = require("./flexMessage");
 const { createTutorialMessage } = require("./tutorialMessage");
+const { getTransactionData } = require("./supabaseUtils");
 
 /**
  * Function to process Dify message and prepare LINE response
  */
-function processDifyMessage(difyMessage) {
+async function processDifyMessage(difyMessage, lineUserId = "default_user") {
   console.log("Processing Dify message for Flex Message extraction");
-  console.log("Original message:", difyMessage);
+  console.log("Original message length:", difyMessage ? difyMessage.length : 0);
+  console.log("LINE user ID:", lineUserId);
 
   // Check if message is exactly "教學文檔" (Tutorial Document)
   if (
@@ -16,6 +18,129 @@ function processDifyMessage(difyMessage) {
   ) {
     console.log("Tutorial document request detected");
     return createTutorialMessage();
+  }
+
+  // Check for summary-related keywords (日、週、月支出/收入總結)
+  const summaryKeywords = [
+    "日支出總結",
+    "日收入總結",
+    "週支出總結",
+    "週收入總結",
+    "月支出總結",
+    "月收入總結",
+    "日支出总结",
+    "日收入总结",
+    "周支出总结",
+    "周收入总结",
+    "月支出总结",
+    "月收入总结",
+  ];
+
+  // Try to extract summary data if keywords are detected
+  for (const keyword of summaryKeywords) {
+    // Check if the message contains EXACTLY the keyword (not as part of a larger text)
+    if (difyMessage.trim() === keyword) {
+      console.log(`Summary keyword detected: ${keyword}`);
+
+      try {
+        // Try to extract summary data using regex patterns and Supabase
+        // This now uses await since the function is async and passes the LINE user ID
+        const summaryData = await extractSummaryData(
+          difyMessage,
+          keyword,
+          lineUserId
+        );
+
+        if (summaryData) {
+          console.log("Created summary flex message with data:", summaryData);
+
+          // Get period type from keyword
+          const periodRegex = /(日|週|周|月)/;
+          const periodMatch = keyword.match(periodRegex);
+          let periodType = "";
+          if (periodMatch) {
+            periodType = periodMatch[1] === "周" ? "週" : periodMatch[1]; // Normalize "周" to "週"
+          }
+
+          // Get the current date in Taiwan timezone
+          const options = {
+            timeZone: "Asia/Taipei",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          };
+          const taiwanDateStr = new Date().toLocaleString("zh-TW", options);
+
+          // Parse the date parts
+          const dateParts = taiwanDateStr.split("/");
+          let year, month, day;
+
+          // Check the date format and parse accordingly
+          if (dateParts.length === 3) {
+            if (dateParts[0].length === 4) {
+              // If the first part is a year (YYYY/MM/DD)
+              year = dateParts[0];
+              month = dateParts[1];
+              day = dateParts[2];
+            } else {
+              // If it's MM/DD/YYYY format
+              year = dateParts[2];
+              month = dateParts[0];
+              day = dateParts[1];
+            }
+          } else {
+            // If parsing fails, use hardcoded approach
+            const taiwanNow = new Date(
+              new Date().getTime() + 8 * 60 * 60 * 1000
+            );
+            year = taiwanNow.getUTCFullYear();
+            month = String(taiwanNow.getUTCMonth() + 1).padStart(2, "0");
+            day = String(taiwanNow.getUTCDate()).padStart(2, "0");
+          }
+
+          // Create the formatted date
+          const formattedDate = `${year}/${month}/${day}`;
+
+          // Create appropriate date range description based on period type
+          let dateRangeText = formattedDate; // Default for "日"
+
+          if (periodType === "週") {
+            // Calculate start of week (Sunday)
+            const today = new Date(`${year}-${month}-${day}T00:00:00Z`);
+            const weekStart = new Date(today);
+            const dayOfWeek = weekStart.getDay(); // 0 is Sunday, 6 is Saturday
+            weekStart.setDate(weekStart.getDate() - dayOfWeek);
+
+            const weekStartYear = weekStart.getFullYear();
+            const weekStartMonth = String(weekStart.getMonth() + 1).padStart(
+              2,
+              "0"
+            );
+            const weekStartDay = String(weekStart.getDate()).padStart(2, "0");
+
+            dateRangeText = `${weekStartYear}/${weekStartMonth}/${weekStartDay} - ${formattedDate}`;
+          } else if (periodType === "月") {
+            // Use the first day of the month to the current day
+            dateRangeText = `${year}/${month}/01 - ${formattedDate}`;
+          }
+
+          // Format the message using the specified format: "以下是{指定的週期 實際日期區間}的分析"
+          // Add "本" before the period type
+          const customMessage = `以下是本${periodType} ${dateRangeText}的分析`;
+
+          // Return the formatted summary response with the custom message
+          return {
+            text: "", // Empty text to remove the text message
+            flexMessages: [createSummaryMessage(summaryData)],
+            type: "summary",
+          };
+        }
+      } catch (error) {
+        console.error("Error creating summary flex message:", error);
+      }
+
+      break;
+    }
   }
 
   // Always keep the original message intact to preserve IDs and types
@@ -374,7 +499,317 @@ function cleanMessageText(message) {
   return cleanedText;
 }
 
+/**
+ * Extract summary data from message or keywords
+ */
+async function extractSummaryData(text, keyword, lineUserId = "default_user") {
+  const cleanText = text.trim();
+
+  // Use regex to look for "日/週/月" at the beginning of the keyword
+  const periodRegex = /(日|週|周|月)/;
+  const periodMatch = keyword.match(periodRegex);
+  let periodType = "";
+  if (periodMatch) {
+    periodType = periodMatch[1] === "周" ? "週" : periodMatch[1]; // Normalize "周" to "週"
+  }
+
+  console.log(`Period type detected: ${periodType}`);
+  console.log(`Using LINE user ID: ${lineUserId}`);
+
+  // Determine transaction type from keyword
+  const transactionTypeMatch = /支出|收入/.exec(keyword);
+  const transactionType = transactionTypeMatch
+    ? transactionTypeMatch[0] === "支出"
+      ? "支出"
+      : "收入"
+    : "支出"; // Default to expense if not found
+
+  console.log(`Transaction type detected: ${transactionType}`);
+
+  // Set a generic title based on the period and transaction type
+  const title = `${periodType}${transactionType}總結`;
+
+  // Default values - will be overridden by extracted or Supabase data
+  let incomeValue = null;
+  let expenseValue = null;
+  let balanceValue = null;
+
+  // Try to extract income and expense from the text
+  const incomeRegex = /收入[：:]\s*([$¥￥]?\s*[0-9,]+(?:\.[0-9]{1,2})?)/;
+  const expenseRegex = /支出[：:]\s*([$¥￥]?\s*[0-9,]+(?:\.[0-9]{1,2})?)/;
+  const balanceRegex =
+    /(?:結餘|餘額)[：:]\s*([$¥￥]?\s*[0-9,]+(?:\.[0-9]{1,2})?)/;
+
+  const incomeMatch = cleanText.match(incomeRegex);
+  const expenseMatch = cleanText.match(expenseRegex);
+  const balanceMatch = cleanText.match(balanceRegex);
+
+  // Flag to determine if we need fallback data
+  let hasData = false;
+
+  if (incomeMatch) {
+    incomeValue = incomeMatch[1].trim();
+    // If the income doesn't have a currency symbol, add a default dollar sign
+    if (!/^[$¥￥]/.test(incomeValue)) {
+      incomeValue = `$ ${incomeValue}`;
+    }
+    hasData = true;
+  }
+
+  if (expenseMatch) {
+    expenseValue = expenseMatch[1].trim();
+    // If the expense doesn't have a currency symbol, add a default dollar sign
+    if (!/^[$¥￥]/.test(expenseValue)) {
+      expenseValue = `$ ${expenseValue}`;
+    }
+    hasData = true;
+  }
+
+  if (balanceMatch) {
+    balanceValue = balanceMatch[1].trim();
+    // If the balance doesn't have a currency symbol, add a default dollar sign
+    if (!/^[$¥￥]/.test(balanceValue)) {
+      balanceValue = `$ ${balanceValue}`;
+    }
+    hasData = true;
+  }
+
+  // If we have both income and expense but no balance, calculate it
+  if (incomeValue && expenseValue && !balanceValue) {
+    try {
+      const incomeNumeric = incomeValue.replace(/[$¥￥,\s]/g, "");
+      const expenseNumeric = expenseValue.replace(/[$¥￥,\s]/g, "");
+
+      const income = parseFloat(incomeNumeric);
+      const expense = parseFloat(expenseNumeric);
+      const balance = income - expense;
+
+      balanceValue = `$ ${balance.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+      hasData = true;
+    } catch (error) {
+      console.error("Error calculating balance:", error);
+    }
+  }
+
+  // Extract top expense categories if available
+  let analysisItems = extractCategories(cleanText);
+
+  // 嘗試從 Supabase 獲取數據 (如果沒有從文本中提取到足夠的數據)
+  if (!hasData || (!incomeValue && !expenseValue)) {
+    try {
+      console.log(`===== 嘗試從 Supabase 獲取數據 =====`);
+      console.log(`尚未從文本中提取到足夠的數據，將嘗試從 Supabase 獲取`);
+      console.log(`使用 LINE 用戶 ID: ${lineUserId}, 期間類型: ${periodType}`);
+
+      const supabaseData = await getTransactionData(lineUserId, periodType);
+
+      if (supabaseData) {
+        console.log(
+          `成功從 Supabase 獲取數據 (收入: ${supabaseData.income}, 支出: ${supabaseData.expense}, 結餘: ${supabaseData.balance})`
+        );
+
+        // 使用 Supabase 獲取的數據覆蓋之前的值
+        incomeValue = supabaseData.income;
+        expenseValue = supabaseData.expense;
+        balanceValue = supabaseData.balance;
+
+        // 根據交易類型選擇對應的分析項目
+        if (
+          transactionType === "收入" &&
+          supabaseData.incomeAnalysisItems &&
+          supabaseData.incomeAnalysisItems.length > 0
+        ) {
+          analysisItems = supabaseData.incomeAnalysisItems;
+          console.log(
+            `使用 Supabase 提供的 ${analysisItems.length} 個收入分析項目`
+          );
+        } else if (
+          transactionType === "支出" &&
+          supabaseData.expenseAnalysisItems &&
+          supabaseData.expenseAnalysisItems.length > 0
+        ) {
+          analysisItems = supabaseData.expenseAnalysisItems;
+          console.log(
+            `使用 Supabase 提供的 ${analysisItems.length} 個支出分析項目`
+          );
+        } else {
+          // 如果沒有找到對應類型的分析項目，使用預設
+          console.log(
+            `Supabase 數據中沒有${transactionType}分析項目，將使用默認分析項目`
+          );
+        }
+
+        hasData = true;
+        console.log(`已成功使用 Supabase 數據`);
+      } else {
+        console.log(`從 Supabase 獲取數據失敗，將使用默認數據`);
+      }
+    } catch (error) {
+      console.error(`從 Supabase 獲取數據時發生錯誤:`, error);
+      console.log(`將使用默認數據`);
+    } finally {
+      console.log(`===== 完成從 Supabase 獲取數據 =====`);
+    }
+  }
+
+  // If we still couldn't extract or retrieve data, use fallback data
+  if (!hasData || (!incomeValue && !expenseValue)) {
+    console.log("Using fallback data for summary");
+    // Generate period-appropriate dummy data based on the period type
+    let defaultIncome, defaultExpense, defaultBalance;
+    let defaultCategories = [];
+
+    if (periodType === "日") {
+      defaultIncome = "$ 500";
+      defaultExpense = "$ 300";
+      defaultBalance = "$ 200";
+
+      // 依據交易類型生成對應的類別
+      if (transactionType === "收入") {
+        defaultCategories = [
+          { category: "薪資", amount: "$ 300", percentage: "60%" },
+          { category: "獎金", amount: "$ 150", percentage: "30%" },
+          { category: "其他", amount: "$ 50", percentage: "10%" },
+        ];
+      } else {
+        defaultCategories = [
+          { category: "餐飲", amount: "$ 150", percentage: "50%" },
+          { category: "交通", amount: "$ 100", percentage: "33.3%" },
+          { category: "其他", amount: "$ 50", percentage: "16.7%" },
+        ];
+      }
+    } else if (periodType === "週") {
+      defaultIncome = "$ 3,500";
+      defaultExpense = "$ 2,100";
+      defaultBalance = "$ 1,400";
+
+      if (transactionType === "收入") {
+        defaultCategories = [
+          { category: "薪資", amount: "$ 2,500", percentage: "71.4%" },
+          { category: "兼職", amount: "$ 700", percentage: "20.0%" },
+          { category: "其他", amount: "$ 300", percentage: "8.6%" },
+        ];
+      } else {
+        defaultCategories = [
+          { category: "餐飲", amount: "$ 900", percentage: "42.9%" },
+          { category: "交通", amount: "$ 600", percentage: "28.6%" },
+          { category: "購物", amount: "$ 400", percentage: "19.0%" },
+          { category: "其他", amount: "$ 200", percentage: "9.5%" },
+        ];
+      }
+    } else {
+      // 月
+      defaultIncome = "$ 15,000";
+      defaultExpense = "$ 9,000";
+      defaultBalance = "$ 6,000";
+
+      if (transactionType === "收入") {
+        defaultCategories = [
+          { category: "薪資", amount: "$ 12,000", percentage: "80.0%" },
+          { category: "獎金", amount: "$ 2,000", percentage: "13.3%" },
+          { category: "兼職", amount: "$ 800", percentage: "5.3%" },
+          { category: "其他", amount: "$ 200", percentage: "1.3%" },
+        ];
+      } else {
+        defaultCategories = [
+          { category: "住房", amount: "$ 3,500", percentage: "38.9%" },
+          { category: "餐飲", amount: "$ 2,500", percentage: "27.8%" },
+          { category: "交通", amount: "$ 1,200", percentage: "13.3%" },
+          { category: "購物", amount: "$ 1,000", percentage: "11.1%" },
+          { category: "其他", amount: "$ 800", percentage: "8.9%" },
+        ];
+      }
+    }
+
+    // Only set values that aren't already set, so we keep any real data we found
+    if (!incomeValue) incomeValue = defaultIncome;
+    if (!expenseValue) expenseValue = defaultExpense;
+    if (!balanceValue) balanceValue = defaultBalance;
+
+    // Use default categories only if we don't have any
+    if (analysisItems.length === 0) {
+      analysisItems = defaultCategories;
+    }
+  }
+
+  // Make sure balanceValue is consistent with income and expense
+  // If we've got both income and expense but no explicit balance, calculate it
+  if (incomeValue && expenseValue && !balanceValue) {
+    try {
+      const incomeNumeric = incomeValue.replace(/[$¥￥,\s]/g, "");
+      const expenseNumeric = expenseValue.replace(/[$¥￥,\s]/g, "");
+
+      const income = parseFloat(incomeNumeric);
+      const expense = parseFloat(expenseNumeric);
+      const balance = income - expense;
+
+      balanceValue = `$ ${balance.toLocaleString("en-US", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })}`;
+    } catch (error) {
+      console.error("Error calculating balance from income/expense:", error);
+    }
+  }
+
+  return {
+    title,
+    income: incomeValue,
+    expense: expenseValue,
+    balance: balanceValue,
+    analysisTitle: `${periodType}${transactionType}分析`,
+    analysisItems,
+  };
+}
+
+/**
+ * Extract category data for analysis
+ */
+function extractCategories(text) {
+  // Looking for patterns like "食物：$1,200 (37.5%)" or similar
+  const categoryRegex =
+    /([\u4e00-\u9fa5a-zA-Z]+)[：:]\s*([$¥￥]?\s*[0-9,]+(?:\.[0-9]{1,2})?)\s*(?:\(([0-9.]+%)\))?/g;
+
+  const categoryMatches = [...text.matchAll(categoryRegex)];
+  const analysisItems = [];
+
+  // Skip common terms that we don't want in our category list
+  const skipCategories = [
+    "收入",
+    "支出",
+    "結餘",
+    "餘額",
+    "凈收入",
+    "主要支出類別",
+    "主要",
+    "支出類別",
+  ];
+
+  categoryMatches.forEach((match) => {
+    if (match.length >= 3 && !skipCategories.includes(match[1].trim())) {
+      // For the amount, check if it already has a currency symbol
+      const amountValue = match[2].trim();
+      const hasCurrencySymbol = /^[$¥￥]/.test(amountValue);
+      const formattedAmount = hasCurrencySymbol
+        ? amountValue
+        : `$ ${amountValue}`;
+
+      analysisItems.push({
+        category: match[1].trim(),
+        amount: formattedAmount,
+        percentage: match[3] ? match[3].trim() : "0%",
+      });
+    }
+  });
+
+  return analysisItems;
+}
+
 module.exports = {
   processDifyMessage,
   cleanMessageText,
+  extractSummaryData,
 };

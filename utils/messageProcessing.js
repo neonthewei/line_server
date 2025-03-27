@@ -8,7 +8,7 @@ const { createTutorialMessage } = require("./tutorialMessage");
 /**
  * Helper function to create messages array from response
  */
-function createMessagesFromResponse(response, isConyMessage = false) {
+async function createMessagesFromResponse(response, isConyMessage = false) {
   // Extract userId and text from message if it's an object
   const userId = typeof response === "object" ? response.userId : null;
   const messageText = typeof response === "object" ? response.text : response;
@@ -18,7 +18,9 @@ function createMessagesFromResponse(response, isConyMessage = false) {
 
   // Process the message to check for JSON content that should be a Flex Message
   const processedMessage =
-    responseType === "tutorial" ? response : processDifyMessage(messageText);
+    responseType === "tutorial"
+      ? response
+      : await processDifyMessage(messageText, userId);
   const messages = [];
 
   // 1. 如果有轉錄文字，添加一個綠色背景的 Flex Message 到消息數組的最前面
@@ -51,7 +53,28 @@ function createMessagesFromResponse(response, isConyMessage = false) {
     messages.push(transcriptionFlexMessage);
   }
 
-  // 2. 添加 Flex Messages（記帳訊息或教學文檔，如果有）
+  // 2. 首先添加文字訊息（如果有），確保文字訊息在 Flex 消息之前
+  if (processedMessage.text && processedMessage.text.trim() !== "") {
+    if (processedMessage.text.trim() !== "") {
+      const textMessageObj = {
+        type: "text",
+        text: processedMessage.text,
+      };
+
+      // 如果是Cony訊息，添加sender信息
+      if (isConyMessage) {
+        textMessageObj.sender = {
+          name: "Cony",
+          iconUrl:
+            "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
+        };
+      }
+
+      messages.push(textMessageObj);
+    }
+  }
+
+  // 3. 然後添加 Flex Messages（記帳訊息或教學文檔，如果有）
   if (
     processedMessage.flexMessages &&
     processedMessage.flexMessages.length > 0
@@ -63,6 +86,9 @@ function createMessagesFromResponse(response, isConyMessage = false) {
       if (processedMessage.type === "tutorial") {
         // For tutorial messages, use different alt text for each part
         altText = index === 0 ? "🍍旺來新手教學 (上)" : "🍍旺來新手教學 (下)";
+      } else if (processedMessage.type === "summary") {
+        // For summary messages, use a different alt text
+        altText = "📊 收支總結";
       } else {
         // For transaction records, check the pill text to determine if it's income or expense
         // The pill text is in the first box's second item's contents first item
@@ -94,27 +120,6 @@ function createMessagesFromResponse(response, isConyMessage = false) {
     });
   }
 
-  // 3. 添加文字訊息（如果有）
-  if (processedMessage.text && processedMessage.text.trim() !== "") {
-    if (processedMessage.text.trim() !== "") {
-      const textMessageObj = {
-        type: "text",
-        text: processedMessage.text,
-      };
-
-      // 如果是Cony訊息，添加sender信息
-      if (isConyMessage) {
-        textMessageObj.sender = {
-          name: "Cony",
-          iconUrl:
-            "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
-        };
-      }
-
-      messages.push(textMessageObj);
-    }
-  }
-
   // 確保訊息數量不超過LINE的限制（5個）
   if (messages.length > 5) {
     console.log(`訊息數量超過LINE限制，截斷至5個訊息`);
@@ -128,13 +133,10 @@ function createMessagesFromResponse(response, isConyMessage = false) {
     };
   }
 
-  // 檢查每個訊息的結構是否符合LINE的規範
+  // 檢查訊息結構合法性
   messages.forEach((msg, index) => {
     if (msg.type === "flex" && (!msg.contents || !msg.contents.type)) {
-      console.error(
-        `第${index}個Flex訊息結構不符合規範:`,
-        JSON.stringify(msg, null, 2)
-      );
+      console.error(`第${index + 1}個Flex訊息結構不符合規範`);
     }
   });
 
