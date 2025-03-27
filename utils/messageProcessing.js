@@ -57,28 +57,7 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
       messages.push(transcriptionFlexMessage);
     }
 
-    // 2. 如果有非空的文本，添加文本消息
-    if (messageText && messageText.trim() !== "") {
-      const textMessageObj = {
-        type: "text",
-        text: messageText,
-      };
-
-      // 如果是Cony訊息，添加sender信息
-      if (isConyMessage) {
-        textMessageObj.sender = {
-          name: "Cony",
-          iconUrl:
-            "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
-        };
-      }
-
-      messages.push(textMessageObj);
-    } else {
-      console.log("文本為空或僅包含空白字符，不發送文本消息");
-    }
-
-    // 3. 添加所有的 Flex 消息
+    // 2. 添加所有的 Flex 消息
     response.flexMessages.forEach((flexMessage, index) => {
       // 根據響應類型確定適當的 altText
       let altText = "已為您記帳！";
@@ -87,6 +66,8 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
         altText = index === 0 ? "🍍旺來新手教學 (上)" : "🍍旺來新手教學 (下)";
       } else if (responseType === "summary") {
         altText = "📊 收支總結";
+      } else if (responseType === "balance_summary") {
+        altText = "💰 餘額";
       } else {
         // 嘗試從 flexMessage 結構中提取類型
         try {
@@ -116,6 +97,27 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
 
       messages.push(flexMessageObj);
     });
+
+    // 3. 如果有非空的文本，添加文本消息
+    if (messageText && messageText.trim() !== "") {
+      const textMessageObj = {
+        type: "text",
+        text: messageText,
+      };
+
+      // 如果是Cony訊息，添加sender信息
+      if (isConyMessage) {
+        textMessageObj.sender = {
+          name: "Cony",
+          iconUrl:
+            "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
+        };
+      }
+
+      messages.push(textMessageObj);
+    } else {
+      console.log("文本為空或僅包含空白字符，不發送文本消息");
+    }
 
     // 確保訊息數量不超過 LINE 的限制
     if (messages.length > 5) {
@@ -177,26 +179,7 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
     messages.push(transcriptionFlexMessage);
   }
 
-  // 2. 添加文字訊息（如果有，且不為空），確保文字訊息在 Flex 消息之前
-  if (processedMessage.text && processedMessage.text.trim() !== "") {
-    const textMessageObj = {
-      type: "text",
-      text: processedMessage.text,
-    };
-
-    // 如果是Cony訊息，添加sender信息
-    if (isConyMessage) {
-      textMessageObj.sender = {
-        name: "Cony",
-        iconUrl:
-          "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
-      };
-    }
-
-    messages.push(textMessageObj);
-  }
-
-  // 3. 添加 Flex Messages（記帳訊息或教學文檔，如果有）
+  // 2. 添加 Flex Messages（記帳訊息或教學文檔，如果有）
   if (
     processedMessage.flexMessages &&
     processedMessage.flexMessages.length > 0
@@ -211,6 +194,9 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
       } else if (processedMessage.type === "summary") {
         // For summary messages, use a different alt text
         altText = "📊 收支總結";
+      } else if (processedMessage.type === "balance_summary") {
+        // For balance summary messages
+        altText = "💰 餘額";
       } else {
         // For transaction records, check the pill text to determine if it's income or expense
         // The pill text is in the first box's second item's contents first item
@@ -240,6 +226,25 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
       };
       messages.push(flexMessageObj);
     });
+  }
+
+  // 3. 添加文字訊息（如果有，且不為空），確保文字訊息在 Flex 消息之後
+  if (processedMessage.text && processedMessage.text.trim() !== "") {
+    const textMessageObj = {
+      type: "text",
+      text: processedMessage.text,
+    };
+
+    // 如果是Cony訊息，添加sender信息
+    if (isConyMessage) {
+      textMessageObj.sender = {
+        name: "Cony",
+        iconUrl:
+          "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
+      };
+    }
+
+    messages.push(textMessageObj);
   }
 
   // 確保我們至少有一條消息可以發送
