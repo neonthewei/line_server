@@ -174,7 +174,7 @@ function createSummaryMessage(data) {
     const templateString = fs.readFileSync(templatePath, "utf8");
 
     // Determine the correct title format based on data
-    let title = data.title || "收支總結";
+    let title = data.title || "無資料";
     let periodPrefix = ""; // 用於存儲期間前綴（日、週、月）
 
     // Check if it's a specific period summary (日/週/月)
@@ -190,7 +190,7 @@ function createSummaryMessage(data) {
     const incomeLabel = periodPrefix ? `${periodPrefix}收` : "收";
     const expenseLabel = periodPrefix ? `${periodPrefix}支` : "支";
 
-    // 處理金額數字，嘗試縮短大數字的顯示
+    // 處理金額數字，無數據時顯示為 $ 0 而非無資料
     let incomeValue = data.income || "$ 0";
     let expenseValue = data.expense || "$ 0";
     let balanceValue = data.balance || "$ 0";
@@ -201,7 +201,7 @@ function createSummaryMessage(data) {
       .replace("${BALANCE_VALUE}", balanceValue)
       .replace("${INCOME_VALUE}", incomeValue)
       .replace("${EXPENSE_VALUE}", expenseValue)
-      .replace("${ANALYSIS_TITLE}", data.analysisTitle || "收支分析")
+      .replace("${ANALYSIS_TITLE}", data.analysisTitle || "支出分析")
       .replace(/"text": "收"/, `"text": "${incomeLabel}"`)
       .replace(/"text": "支"/, `"text": "${expenseLabel}"`);
 
@@ -327,6 +327,7 @@ function createSummaryMessage(data) {
     if (
       data.analysisItems &&
       Array.isArray(data.analysisItems) &&
+      data.analysisItems.length > 0 &&
       flexMessage.body.contents.length >= 4
     ) {
       const analysisContainer = flexMessage.body.contents[3];
@@ -530,6 +531,55 @@ function createSummaryMessage(data) {
 
         analysisContainer.contents.push(rowBox);
       }
+    } else if (flexMessage.body.contents.length >= 4) {
+      // 如果沒有分析項目數據，顯示無數據的信息
+      const analysisContainer = flexMessage.body.contents[3];
+
+      // Clear any existing contents
+      analysisContainer.contents = [];
+
+      // 添加灰色的空比例條
+      const emptyProgressBarContainer = {
+        type: "box",
+        layout: "horizontal",
+        contents: [
+          {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "filler",
+              },
+            ],
+            width: "100%",
+            backgroundColor: "#EEEEEE",
+          },
+        ],
+        height: "24px",
+        cornerRadius: "md",
+        margin: "md",
+      };
+
+      // 先添加灰色的空比例條
+      analysisContainer.contents.push(emptyProgressBarContainer);
+
+      // 添加間距
+      analysisContainer.contents.push({
+        type: "box",
+        layout: "vertical",
+        contents: [],
+        height: "16px",
+      });
+
+      // 添加無數據的提示
+      analysisContainer.contents.push({
+        type: "text",
+        text: "暫無分析數據",
+        size: "sm",
+        color: "#999999",
+        align: "center",
+        margin: "md",
+      });
     }
 
     console.log("Summary Flex Message created successfully");
@@ -622,7 +672,7 @@ function createBalanceSummaryMessage(data) {
     const incomeLabel = `${periodPrefix}收`;
     const expenseLabel = `${periodPrefix}支`;
 
-    // 處理金額值
+    // 處理金額值，無數據時顯示為 $ 0 而非無資料
     let incomeValue = data.income || "$ 0";
     let expenseValue = data.expense || "$ 0";
     let balanceValue = data.balance || "$ 0";
@@ -783,7 +833,8 @@ function createBalanceSummaryMessage(data) {
                 type: "text",
                 text: data.income || "$ 0",
                 size: "sm",
-                color: "#111111",
+                color: "#555555",
+                flex: 1,
                 align: "end",
               },
             ],
@@ -791,6 +842,7 @@ function createBalanceSummaryMessage(data) {
           {
             type: "box",
             layout: "horizontal",
+            margin: "sm",
             contents: [
               {
                 type: "text",
@@ -803,7 +855,8 @@ function createBalanceSummaryMessage(data) {
                 type: "text",
                 text: data.expense || "$ 0",
                 size: "sm",
-                color: "#111111",
+                color: "#555555",
+                flex: 1,
                 align: "end",
               },
             ],

@@ -23,6 +23,19 @@ function testIncomeAnalysis() {
   const incomeSummary = createSummaryMessage(incomeAnalysisData);
   console.log("Income Summary Analysis successful");
 
+  // 測試無數據情況
+  console.log("=== Testing No Data ===");
+  const noDataSummary = createSummaryMessage({});
+  console.log("No Data Summary created");
+
+  // 測試部分數據情況
+  console.log("=== Testing Partial Data ===");
+  const partialDataSummary = createSummaryMessage({
+    title: "日結餘",
+    income: "$ 500",
+  });
+  console.log("Partial Data Summary created");
+
   // Verify some basic structure
   if (
     incomeSummary &&

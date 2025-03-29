@@ -631,7 +631,7 @@ async function extractSummaryData(text, keyword, lineUserId = "default_user") {
     console.log(`Using transaction title: ${title}`);
   }
 
-  // Default values - will be overridden by extracted or Supabase data
+  // 初始化變數為 null，而不是使用默認值
   let incomeValue = null;
   let expenseValue = null;
   let balanceValue = null;
@@ -738,104 +738,25 @@ async function extractSummaryData(text, keyword, lineUserId = "default_user") {
             `使用 Supabase 提供的 ${analysisItems.length} 個支出分析項目`
           );
         } else {
-          // 如果沒有找到對應類型的分析項目，使用預設
-          console.log(
-            `Supabase 數據中沒有${transactionType}分析項目，將使用默認分析項目`
-          );
+          // 如果沒有找到對應類型的分析項目，記錄但不使用預設
+          console.log(`Supabase 數據中沒有${transactionType}分析項目`);
         }
 
         hasData = true;
         console.log(`已成功使用 Supabase 數據`);
       } else {
-        console.log(`從 Supabase 獲取數據失敗，將使用默認數據`);
+        console.log(`從 Supabase 獲取數據失敗`);
       }
     } catch (error) {
       console.error(`從 Supabase 獲取數據時發生錯誤:`, error);
-      console.log(`將使用默認數據`);
     } finally {
       console.log(`===== 完成從 Supabase 獲取數據 =====`);
     }
   }
 
-  // If we still couldn't extract or retrieve data, use fallback data
-  if (!hasData || (!incomeValue && !expenseValue)) {
-    console.log("Using fallback data for summary");
-    // Generate period-appropriate dummy data based on the period type
-    let defaultIncome, defaultExpense, defaultBalance;
-    let defaultCategories = [];
-
-    if (periodType === "日") {
-      defaultIncome = "$ 500";
-      defaultExpense = "$ 300";
-      defaultBalance = "$ 200";
-
-      // 依據交易類型生成對應的類別
-      if (transactionType === "收入") {
-        defaultCategories = [
-          { category: "薪資", amount: "$ 300", percentage: "60%" },
-          { category: "獎金", amount: "$ 150", percentage: "30%" },
-          { category: "其他", amount: "$ 50", percentage: "10%" },
-        ];
-      } else {
-        defaultCategories = [
-          { category: "餐飲", amount: "$ 150", percentage: "50%" },
-          { category: "交通", amount: "$ 100", percentage: "33.3%" },
-          { category: "其他", amount: "$ 50", percentage: "16.7%" },
-        ];
-      }
-    } else if (periodType === "週") {
-      defaultIncome = "$ 3,500";
-      defaultExpense = "$ 2,100";
-      defaultBalance = "$ 1,400";
-
-      if (transactionType === "收入") {
-        defaultCategories = [
-          { category: "薪資", amount: "$ 2,500", percentage: "71.4%" },
-          { category: "兼職", amount: "$ 700", percentage: "20.0%" },
-          { category: "其他", amount: "$ 300", percentage: "8.6%" },
-        ];
-      } else {
-        defaultCategories = [
-          { category: "餐飲", amount: "$ 900", percentage: "42.9%" },
-          { category: "交通", amount: "$ 600", percentage: "28.6%" },
-          { category: "購物", amount: "$ 400", percentage: "19.0%" },
-          { category: "其他", amount: "$ 200", percentage: "9.5%" },
-        ];
-      }
-    } else {
-      // 月
-      defaultIncome = "$ 15,000";
-      defaultExpense = "$ 9,000";
-      defaultBalance = "$ 6,000";
-
-      if (transactionType === "收入") {
-        defaultCategories = [
-          { category: "薪資", amount: "$ 12,000", percentage: "80.0%" },
-          { category: "獎金", amount: "$ 2,000", percentage: "13.3%" },
-          { category: "兼職", amount: "$ 800", percentage: "5.3%" },
-          { category: "其他", amount: "$ 200", percentage: "1.3%" },
-        ];
-      } else {
-        defaultCategories = [
-          { category: "住房", amount: "$ 3,500", percentage: "38.9%" },
-          { category: "餐飲", amount: "$ 2,500", percentage: "27.8%" },
-          { category: "交通", amount: "$ 1,200", percentage: "13.3%" },
-          { category: "購物", amount: "$ 1,000", percentage: "11.1%" },
-          { category: "其他", amount: "$ 800", percentage: "8.9%" },
-        ];
-      }
-    }
-
-    // Only set values that aren't already set, so we keep any real data we found
-    if (!incomeValue) incomeValue = defaultIncome;
-    if (!expenseValue) expenseValue = defaultExpense;
-    if (!balanceValue) balanceValue = defaultBalance;
-
-    // Use default categories only if we don't have any
-    if (analysisItems.length === 0) {
-      analysisItems = defaultCategories;
-    }
-  }
+  // 移除使用假數據的部分
+  // 直接返回從文本或數據庫中獲取的真實數據
+  // 如果沒有數據，flexMessage.js 會顯示「無資料」
 
   // Make sure balanceValue is consistent with income and expense
   // If we've got both income and expense but no explicit balance, calculate it
