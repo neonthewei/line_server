@@ -13,6 +13,7 @@ const {
   createSummaryMessage,
   createBalanceSummaryMessage,
 } = require("../utils/flexMessage");
+const { createCategoryListMessage } = require("../utils/categoryList");
 
 // 存儲已處理的 webhook event IDs
 const processedEvents = new Set();
@@ -111,6 +112,39 @@ async function handleWebhook(req, res) {
               } catch (error) {
                 console.error("處理餘額關鍵詞時出錯:", error);
                 response = "抱歉，處理您的餘額請求時發生錯誤。";
+              }
+            }
+            // 檢查是否是"分類"關鍵詞
+            else if (trimmedMessage === "分類") {
+              console.log(`收到分類關鍵詞請求`);
+
+              try {
+                // 創建分類列表 Flex 訊息
+                const categoryListMessage = await createCategoryListMessage(
+                  userId
+                );
+
+                // 確保創建成功
+                if (!categoryListMessage) {
+                  console.error("無法創建分類列表 Flex 訊息");
+                  response = "抱歉，無法生成分類列表。";
+                  continue;
+                }
+
+                console.log("成功創建分類列表 Flex 訊息");
+
+                // 創建回應
+                response = {
+                  text: "", // 不顯示文本介紹
+                  flexMessages: [categoryListMessage],
+                  type: "category_list",
+                  userId: userId,
+                };
+
+                console.log(`創建了分類列表 Flex 訊息，準備發送`);
+              } catch (error) {
+                console.error("處理分類關鍵詞時出錯:", error);
+                response = "抱歉，處理您的分類請求時發生錯誤。";
               }
             }
             // 檢查是否是直接的摘要關鍵詞請求

@@ -5,6 +5,7 @@ const {
 } = require("./flexMessage");
 const { createTutorialMessage } = require("./tutorialMessage");
 const { getTransactionData } = require("./supabaseUtils");
+const { createCategoryListMessage } = require("./categoryList");
 
 /**
  * Function to process Dify message and prepare LINE response
@@ -25,6 +26,28 @@ async function processDifyMessage(difyMessage, lineUserId = "default_user") {
   ) {
     console.log("Tutorial document request detected");
     return createTutorialMessage();
+  }
+
+  // 檢查消息是否是"分類"，如果是則返回分類列表
+  if (difyMessage.trim() === "分類") {
+    console.log("分類關鍵詞檢測到，創建分類列表");
+    try {
+      // 創建分類列表 Flex 訊息
+      const categoryListMessage = await createCategoryListMessage(lineUserId);
+
+      if (categoryListMessage) {
+        console.log("成功創建分類列表 Flex 訊息");
+        return {
+          text: "", // 不顯示文本介紹
+          flexMessages: [categoryListMessage],
+          type: "category_list",
+        };
+      } else {
+        console.error("無法創建分類列表 Flex 訊息");
+      }
+    } catch (error) {
+      console.error("創建分類列表時出錯:", error);
+    }
   }
 
   // 檢查消息是否是"餘額"，如果是則返回簡化版摘要
