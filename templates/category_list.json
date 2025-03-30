@@ -1,0 +1,277 @@
+{
+  "type": "carousel",
+  "contents": [
+    {
+      "type": "bubble",
+      "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "收入分類",
+            "weight": "bold",
+            "color": "#2D9CDB",
+            "size": "md"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${INCOME_CATEGORY_1}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${INCOME_CATEGORY_2}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${INCOME_CATEGORY_3}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  }
+                ],
+                "spacing": "md"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${INCOME_CATEGORY_4}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${INCOME_CATEGORY_5}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${INCOME_CATEGORY_6}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  }
+                ],
+                "spacing": "md",
+                "margin": "md"
+              }
+            ],
+            "margin": "lg",
+            "spacing": "md"
+          }
+        ],
+        "paddingAll": "xl"
+      }
+    },
+    {
+      "type": "bubble",
+      "body": {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "支出分類",
+            "weight": "bold",
+            "color": "#1DB446",
+            "size": "md"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${EXPENSE_CATEGORY_1}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${EXPENSE_CATEGORY_2}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${EXPENSE_CATEGORY_3}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  }
+                ],
+                "spacing": "md"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${EXPENSE_CATEGORY_4}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${EXPENSE_CATEGORY_5}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "text",
+                        "text": "${EXPENSE_CATEGORY_6}",
+                        "size": "md",
+                        "color": "#555555",
+                        "align": "center"
+                      }
+                    ],
+                    "backgroundColor": "#F5F5F5",
+                    "cornerRadius": "lg",
+                    "paddingAll": "md"
+                  }
+                ],
+                "spacing": "md",
+                "margin": "md"
+              }
+            ],
+            "margin": "lg",
+            "spacing": "md"
+          }
+        ],
+        "paddingAll": "xl"
+      }
+    }
+  ]
+}
