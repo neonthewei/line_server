@@ -1,0 +1,370 @@
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "區間結餘",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "align": "start",
+                    "margin": "none"
+                  }
+                ],
+                "height": "18px",
+                "justifyContent": "flex-end",
+                "alignItems": "center",
+                "paddingBottom": "0px"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "$ 12,500",
+                    "size": "xxl",
+                    "color": "#555555",
+                    "weight": "bold",
+                    "align": "start",
+                    "wrap": false,
+                    "adjustMode": "shrink-to-fit",
+                    "maxLines": 1
+                  }
+                ],
+                "height": "18px",
+                "justifyContent": "flex-start",
+                "alignItems": "center",
+                "margin": "none",
+                "spacing": "none",
+                "paddingTop": "0px"
+              }
+            ],
+            "flex": 1,
+            "justifyContent": "space-between",
+            "spacing": "none",
+            "height": "36px",
+            "paddingTop": "0px",
+            "paddingBottom": "0px"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "區收",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "flex": 0,
+                    "margin": "xl",
+                    "align": "start"
+                  },
+                  {
+                    "type": "text",
+                    "text": "$ 25,000",
+                    "size": "md",
+                    "color": "#555555",
+                    "weight": "bold",
+                    "align": "end",
+                    "wrap": false,
+                    "adjustMode": "shrink-to-fit",
+                    "flex": 1,
+                    "maxLines": 1
+                  }
+                ],
+                "alignItems": "center",
+                "justifyContent": "space-between",
+                "spacing": "sm",
+                "width": "100%",
+                "flex": 1,
+                "paddingStart": "20px",
+                "height": "18px",
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "區支",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "flex": 0,
+                    "margin": "xl",
+                    "align": "start"
+                  },
+                  {
+                    "type": "text",
+                    "text": "$ 12,500",
+                    "size": "md",
+                    "color": "#555555",
+                    "weight": "bold",
+                    "align": "end",
+                    "wrap": false,
+                    "adjustMode": "shrink-to-fit",
+                    "flex": 1,
+                    "maxLines": 1
+                  }
+                ],
+                "margin": "none",
+                "alignItems": "center",
+                "justifyContent": "space-between",
+                "spacing": "sm",
+                "width": "100%",
+                "flex": 1,
+                "paddingStart": "20px",
+                "height": "18px"
+              }
+            ],
+            "flex": 2,
+            "justifyContent": "space-between",
+            "spacing": "none",
+            "paddingStart": "12px",
+            "height": "36px",
+            "paddingTop": "0px",
+            "paddingBottom": "0px"
+          }
+        ],
+        "paddingBottom": "12px",
+        "alignItems": "flex-start",
+        "height": "48px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "separator",
+            "color": "#DDDDDD"
+          }
+        ],
+        "paddingBottom": "12px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "區間支出分析",
+            "weight": "bold",
+            "size": "sm",
+            "color": "#555555",
+            "margin": "none"
+          }
+        ],
+        "paddingBottom": "6px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "飲食",
+                "size": "xs",
+                "color": "#555555",
+                "flex": 0,
+                "margin": "none",
+                "weight": "bold"
+              },
+              {
+                "type": "text",
+                "text": "$ 5,200 (42%)",
+                "size": "xs",
+                "color": "#555555",
+                "align": "end",
+                "flex": 1
+              }
+            ],
+            "justifyContent": "space-between",
+            "alignItems": "center",
+            "margin": "none"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [],
+                "height": "6px",
+                "width": "42%",
+                "backgroundColor": "#27ACB2"
+              }
+            ],
+            "backgroundColor": "#EEEEEE",
+            "height": "6px",
+            "margin": "sm"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "交通",
+                "size": "xs",
+                "color": "#555555",
+                "flex": 0,
+                "margin": "none",
+                "weight": "bold"
+              },
+              {
+                "type": "text",
+                "text": "$ 3,000 (24%)",
+                "size": "xs",
+                "color": "#555555",
+                "align": "end",
+                "flex": 1
+              }
+            ],
+            "justifyContent": "space-between",
+            "alignItems": "center",
+            "margin": "md"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [],
+                "height": "6px",
+                "width": "24%",
+                "backgroundColor": "#FF6B6E"
+              }
+            ],
+            "backgroundColor": "#EEEEEE",
+            "height": "6px",
+            "margin": "sm"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "購物",
+                "size": "xs",
+                "color": "#555555",
+                "flex": 0,
+                "margin": "none",
+                "weight": "bold"
+              },
+              {
+                "type": "text",
+                "text": "$ 2,800 (22%)",
+                "size": "xs",
+                "color": "#555555",
+                "align": "end",
+                "flex": 1
+              }
+            ],
+            "justifyContent": "space-between",
+            "alignItems": "center",
+            "margin": "md"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [],
+                "height": "6px",
+                "width": "22%",
+                "backgroundColor": "#FFA217"
+              }
+            ],
+            "backgroundColor": "#EEEEEE",
+            "height": "6px",
+            "margin": "sm"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "其他",
+                "size": "xs",
+                "color": "#555555",
+                "flex": 0,
+                "margin": "none",
+                "weight": "bold"
+              },
+              {
+                "type": "text",
+                "text": "$ 1,500 (12%)",
+                "size": "xs",
+                "color": "#555555",
+                "align": "end",
+                "flex": 1
+              }
+            ],
+            "justifyContent": "space-between",
+            "alignItems": "center",
+            "margin": "md"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [],
+                "height": "6px",
+                "width": "12%",
+                "backgroundColor": "#A17DE8"
+              }
+            ],
+            "backgroundColor": "#EEEEEE",
+            "height": "6px",
+            "margin": "sm"
+          }
+        ],
+        "spacing": "xs"
+      }
+    ],
+    "paddingAll": "24px",
+    "backgroundColor": "#FFFFFF",
+    "spacing": "none"
+  },
+  "styles": {
+    "body": {
+      "backgroundColor": "#FFFFFF"
+    }
+  }
+}

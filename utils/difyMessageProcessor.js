@@ -4,7 +4,10 @@ const {
   createBalanceSummaryMessage,
 } = require("./flexMessage");
 const { createTutorialMessage } = require("./tutorialMessage");
-const { getTransactionData } = require("./supabaseUtils");
+const {
+  getTransactionData,
+  getTransactionDataByDateRange,
+} = require("./supabaseUtils");
 const { createCategoryListMessage } = require("./categoryList");
 
 /**
@@ -252,6 +255,102 @@ async function processDifyMessage(difyMessage, lineUserId = "default_user") {
       }
 
       break;
+    }
+  }
+
+  // 檢查是否是特定日期範圍的支出/收入總結
+  if (
+    difyMessage.trim().startsWith("區間支出總結") ||
+    difyMessage.trim().startsWith("區間收入總結")
+  ) {
+    console.log(`檢測到日期範圍總結請求: ${difyMessage.trim()}`);
+
+    try {
+      // 確定是支出還是收入
+      const transactionType = difyMessage.trim().includes("支出")
+        ? "支出"
+        : "收入";
+      console.log(`交易類型: ${transactionType}`);
+
+      // 嘗試提取JSON數據
+      const jsonMatch = difyMessage.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+      if (jsonMatch && jsonMatch[1]) {
+        const jsonData = JSON.parse(jsonMatch[1]);
+        console.log(
+          `提取到日期範圍: ${jsonData.start_date} 至 ${jsonData.end_date}`
+        );
+
+        if (jsonData.start_date && jsonData.end_date) {
+          // 獲取指定日期範圍的交易數據
+          const summaryData = await getTransactionDataByDateRange(
+            lineUserId,
+            jsonData.start_date,
+            jsonData.end_date
+          );
+
+          if (summaryData) {
+            console.log("獲取到日期範圍的數據:", summaryData);
+
+            // 設置標題為「區間結餘」
+            let title = "區間結餘";
+
+            // 設置「區支」和「區收」標籤
+            const customSummaryData = {
+              ...summaryData,
+              title: title,
+              // 使用更短的標籤「區支」和「區收」，而不是根據期間類型修改
+              incomeLabel: "區收",
+              expenseLabel: "區支",
+              // 簡化分析標題，不包含日期範圍
+              analysisTitle: `區間${transactionType}分析`,
+            };
+
+            if (transactionType === "支出") {
+              // 只保留支出類別分析
+              if (summaryData.expenseAnalysisItems) {
+                customSummaryData.analysisItems =
+                  summaryData.expenseAnalysisItems;
+              }
+            } else {
+              // 只保留收入類別分析
+              if (summaryData.incomeAnalysisItems) {
+                customSummaryData.analysisItems =
+                  summaryData.incomeAnalysisItems;
+              }
+            }
+
+            // 創建摘要 Flex 訊息
+            const summaryFlexMessage = createSummaryMessage(customSummaryData);
+
+            if (summaryFlexMessage) {
+              console.log("成功創建區間總結 Flex 訊息");
+
+              // 創建顯示日期範圍的文字訊息
+              const dateRangeText = `查詢區間：${jsonData.start_date} 至 ${jsonData.end_date}`;
+
+              return {
+                text: dateRangeText, // 顯示日期範圍的文字訊息
+                flexMessages: [summaryFlexMessage],
+                type: "date_range_summary",
+              };
+            }
+          } else {
+            console.log("無法獲取指定日期範圍的數據");
+            return {
+              text: `無法獲取 ${jsonData.start_date} 至 ${jsonData.end_date} 的${transactionType}數據`,
+              flexMessages: [],
+              type: "text",
+            };
+          }
+        }
+      }
+    } catch (error) {
+      console.error("處理日期範圍總結時出錯:", error);
+      return {
+        text: "處理日期範圍總結時出錯，請檢查日期格式是否正確 (YYYY-MM-DD)",
+        flexMessages: [],
+        type: "text",
+      };
     }
   }
 

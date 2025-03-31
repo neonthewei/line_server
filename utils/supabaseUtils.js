@@ -295,6 +295,74 @@ async function getTransactionData(lineUserId, periodType) {
 }
 
 /**
+ * 根據用戶ID和特定日期範圍獲取交易數據
+ * @param {string} lineUserId - LINE 用戶 ID
+ * @param {string} startDate - 開始日期，格式 YYYY-MM-DD
+ * @param {string} endDate - 結束日期，格式 YYYY-MM-DD
+ * @returns {Promise<Object>} - 包含收入、支出、分類數據的對象
+ */
+async function getTransactionDataByDateRange(lineUserId, startDate, endDate) {
+  try {
+    console.log(`===== 開始獲取指定日期範圍的交易數據 =====`);
+    console.log(`LINE 用戶 ID: ${lineUserId}`);
+    console.log(`日期範圍: ${startDate} 至 ${endDate}`);
+
+    // 直接使用 LINE 用戶 ID 作為查詢條件
+    const userId = lineUserId;
+    console.log(`使用 LINE 用戶 ID 作為查詢條件: ${userId}`);
+
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      console.error("無法創建 Supabase 客戶端，將使用默認數據");
+      return null;
+    }
+
+    // 獲取所有交易記錄
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("datetime", { ascending: false });
+
+    if (error) {
+      console.error(`查詢交易數據時出錯:`, error);
+      return null;
+    }
+
+    if (!data || data.length === 0) {
+      console.log(`用戶 ${userId} 沒有任何交易記錄，將使用默認數據`);
+      return null;
+    }
+
+    // 篩選指定日期範圍內的記錄
+    const transactionsInRange = data.filter((record) => {
+      if (!record.datetime) return false;
+      const recordDate = record.datetime.split("T")[0];
+      return recordDate >= startDate && recordDate <= endDate;
+    });
+
+    const timeRangeDescription = `指定範圍 (${startDate} 至 ${endDate})`;
+    console.log(`時間範圍描述: ${timeRangeDescription}`);
+    console.log(`找到符合範圍的記錄數: ${transactionsInRange.length}`);
+
+    if (transactionsInRange.length === 0) {
+      console.log(
+        `用戶 ${userId} 在${timeRangeDescription}沒有交易記錄，將使用默認數據`
+      );
+      return null;
+    }
+
+    // 處理交易記錄
+    return processTransactions(transactionsInRange);
+  } catch (error) {
+    console.error(`獲取指定日期範圍的交易數據時發生錯誤:`, error);
+    return null;
+  } finally {
+    console.log(`===== 完成獲取指定日期範圍的交易數據 =====`);
+  }
+}
+
+/**
  * 處理交易記錄並格式化結果
  * @param {Array} data - 交易記錄數組
  * @returns {Object} - 格式化後的結果對象
@@ -523,5 +591,6 @@ module.exports = {
   getSupabaseClient,
   getUserIdFromLineId,
   getTransactionData,
+  getTransactionDataByDateRange,
   createDatabaseSchema,
 };

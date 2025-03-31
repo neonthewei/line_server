@@ -228,6 +228,35 @@ async function handleWebhook(req, res) {
                 console.error("處理摘要關鍵詞時出錯:", error);
                 response = "抱歉，處理您的摘要請求時發生錯誤。";
               }
+            }
+            // 檢查是否是區間支出/收入總結請求
+            else if (
+              trimmedMessage.startsWith("區間支出總結") ||
+              trimmedMessage.startsWith("區間收入總結")
+            ) {
+              console.log(`收到區間總結關鍵詞: ${trimmedMessage}`);
+
+              try {
+                // 直接將整個消息傳遞給 Dify 處理
+                // Dify 將解析 JSON 並使用 getTransactionDataByDateRange 函數
+                response = await sendToDify(userMessage, userId);
+
+                // 檢查 response 是否包含 date_range_summary 類型的 flexMessages
+                if (
+                  response &&
+                  response.type === "date_range_summary" &&
+                  response.flexMessages &&
+                  response.flexMessages.length > 0
+                ) {
+                  console.log("成功創建區間總結 Flex 訊息");
+                  // 不需要額外處理，直接使用 Dify 回傳的 flexMessages
+                } else {
+                  console.log("無法從 Dify 獲取正確的區間總結數據");
+                }
+              } catch (error) {
+                console.error("處理區間總結關鍵詞時出錯:", error);
+                response = "抱歉，處理您的區間總結請求時發生錯誤。";
+              }
             } else {
               // 檢查訊息是否包含Cony
               isConyMessage = userMessage.includes("Cony");

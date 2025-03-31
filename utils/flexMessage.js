@@ -187,8 +187,11 @@ function createSummaryMessage(data) {
     }
 
     // Create period-prefixed income and expense labels - 使用更簡短的標籤「收」和「支」
-    const incomeLabel = periodPrefix ? `${periodPrefix}收` : "收";
-    const expenseLabel = periodPrefix ? `${periodPrefix}支` : "支";
+    // 如果提供了自定義標籤，則使用自定義標籤；否則，使用基於期間前綴的標籤
+    const incomeLabel =
+      data.incomeLabel || (periodPrefix ? `${periodPrefix}收` : "收");
+    const expenseLabel =
+      data.expenseLabel || (periodPrefix ? `${periodPrefix}支` : "支");
 
     // 處理金額數字，無數據時顯示為 $ 0 而非無資料
     let incomeValue = data.income || "$ 0";

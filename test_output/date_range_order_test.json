@@ -1,0 +1,343 @@
+{
+  "explanation": "此測試展示如何處理區間總結的訊息順序",
+  "input": {
+    "text": "查詢區間：2025-04-10 至 2025-06-10",
+    "flexMessages": [
+      {
+        "type": "bubble",
+        "body": {
+          "type": "box",
+          "layout": "vertical",
+          "contents": [
+            {
+              "type": "box",
+              "layout": "horizontal",
+              "contents": [
+                {
+                  "type": "box",
+                  "layout": "vertical",
+                  "contents": [
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "text",
+                          "text": "區間結餘",
+                          "weight": "bold",
+                          "size": "sm",
+                          "color": "#555555",
+                          "align": "start",
+                          "margin": "none"
+                        }
+                      ],
+                      "height": "18px",
+                      "justifyContent": "flex-end",
+                      "alignItems": "center",
+                      "paddingBottom": "0px"
+                    },
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "text",
+                          "text": "$ 12,500",
+                          "size": "xxl",
+                          "color": "#555555",
+                          "weight": "bold",
+                          "align": "start",
+                          "wrap": false,
+                          "adjustMode": "shrink-to-fit",
+                          "maxLines": 1
+                        }
+                      ],
+                      "height": "18px",
+                      "justifyContent": "flex-start",
+                      "alignItems": "center",
+                      "margin": "none",
+                      "spacing": "none",
+                      "paddingTop": "0px"
+                    }
+                  ],
+                  "flex": 1,
+                  "justifyContent": "space-between",
+                  "spacing": "none",
+                  "height": "36px",
+                  "paddingTop": "0px",
+                  "paddingBottom": "0px"
+                },
+                {
+                  "type": "box",
+                  "layout": "vertical",
+                  "contents": [
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "text",
+                          "text": "區收",
+                          "weight": "bold",
+                          "size": "sm",
+                          "color": "#555555",
+                          "flex": 0,
+                          "margin": "xl",
+                          "align": "start"
+                        },
+                        {
+                          "type": "text",
+                          "text": "$ 25,000",
+                          "size": "md",
+                          "color": "#555555",
+                          "weight": "bold",
+                          "align": "end",
+                          "wrap": false,
+                          "adjustMode": "shrink-to-fit",
+                          "flex": 1,
+                          "maxLines": 1
+                        }
+                      ],
+                      "alignItems": "center",
+                      "justifyContent": "space-between",
+                      "spacing": "sm",
+                      "width": "100%",
+                      "flex": 1,
+                      "paddingStart": "20px",
+                      "height": "18px",
+                      "margin": "none"
+                    },
+                    {
+                      "type": "box",
+                      "layout": "horizontal",
+                      "contents": [
+                        {
+                          "type": "text",
+                          "text": "區支",
+                          "weight": "bold",
+                          "size": "sm",
+                          "color": "#555555",
+                          "flex": 0,
+                          "margin": "xl",
+                          "align": "start"
+                        },
+                        {
+                          "type": "text",
+                          "text": "$ 12,500",
+                          "size": "md",
+                          "color": "#555555",
+                          "weight": "bold",
+                          "align": "end",
+                          "wrap": false,
+                          "adjustMode": "shrink-to-fit",
+                          "flex": 1,
+                          "maxLines": 1
+                        }
+                      ],
+                      "margin": "none",
+                      "alignItems": "center",
+                      "justifyContent": "space-between",
+                      "spacing": "sm",
+                      "width": "100%",
+                      "flex": 1,
+                      "paddingStart": "20px",
+                      "height": "18px"
+                    }
+                  ],
+                  "flex": 2,
+                  "justifyContent": "space-between",
+                  "spacing": "none",
+                  "paddingStart": "12px",
+                  "height": "36px",
+                  "paddingTop": "0px",
+                  "paddingBottom": "0px"
+                }
+              ],
+              "paddingBottom": "12px",
+              "alignItems": "flex-start",
+              "height": "48px"
+            }
+          ],
+          "paddingAll": "24px",
+          "backgroundColor": "#FFFFFF",
+          "spacing": "none"
+        }
+      }
+    ],
+    "type": "date_range_summary"
+  },
+  "output": {
+    "messagesArray": [
+      {
+        "type": "text",
+        "text": "查詢區間：2025-04-10 至 2025-06-10"
+      },
+      {
+        "type": "flex",
+        "altText": "📊 區間收支總結",
+        "contents": {
+          "type": "bubble",
+          "body": {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                          {
+                            "type": "text",
+                            "text": "區間結餘",
+                            "weight": "bold",
+                            "size": "sm",
+                            "color": "#555555",
+                            "align": "start",
+                            "margin": "none"
+                          }
+                        ],
+                        "height": "18px",
+                        "justifyContent": "flex-end",
+                        "alignItems": "center",
+                        "paddingBottom": "0px"
+                      },
+                      {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                          {
+                            "type": "text",
+                            "text": "$ 12,500",
+                            "size": "xxl",
+                            "color": "#555555",
+                            "weight": "bold",
+                            "align": "start",
+                            "wrap": false,
+                            "adjustMode": "shrink-to-fit",
+                            "maxLines": 1
+                          }
+                        ],
+                        "height": "18px",
+                        "justifyContent": "flex-start",
+                        "alignItems": "center",
+                        "margin": "none",
+                        "spacing": "none",
+                        "paddingTop": "0px"
+                      }
+                    ],
+                    "flex": 1,
+                    "justifyContent": "space-between",
+                    "spacing": "none",
+                    "height": "36px",
+                    "paddingTop": "0px",
+                    "paddingBottom": "0px"
+                  },
+                  {
+                    "type": "box",
+                    "layout": "vertical",
+                    "contents": [
+                      {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                          {
+                            "type": "text",
+                            "text": "區收",
+                            "weight": "bold",
+                            "size": "sm",
+                            "color": "#555555",
+                            "flex": 0,
+                            "margin": "xl",
+                            "align": "start"
+                          },
+                          {
+                            "type": "text",
+                            "text": "$ 25,000",
+                            "size": "md",
+                            "color": "#555555",
+                            "weight": "bold",
+                            "align": "end",
+                            "wrap": false,
+                            "adjustMode": "shrink-to-fit",
+                            "flex": 1,
+                            "maxLines": 1
+                          }
+                        ],
+                        "alignItems": "center",
+                        "justifyContent": "space-between",
+                        "spacing": "sm",
+                        "width": "100%",
+                        "flex": 1,
+                        "paddingStart": "20px",
+                        "height": "18px",
+                        "margin": "none"
+                      },
+                      {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                          {
+                            "type": "text",
+                            "text": "區支",
+                            "weight": "bold",
+                            "size": "sm",
+                            "color": "#555555",
+                            "flex": 0,
+                            "margin": "xl",
+                            "align": "start"
+                          },
+                          {
+                            "type": "text",
+                            "text": "$ 12,500",
+                            "size": "md",
+                            "color": "#555555",
+                            "weight": "bold",
+                            "align": "end",
+                            "wrap": false,
+                            "adjustMode": "shrink-to-fit",
+                            "flex": 1,
+                            "maxLines": 1
+                          }
+                        ],
+                        "margin": "none",
+                        "alignItems": "center",
+                        "justifyContent": "space-between",
+                        "spacing": "sm",
+                        "width": "100%",
+                        "flex": 1,
+                        "paddingStart": "20px",
+                        "height": "18px"
+                      }
+                    ],
+                    "flex": 2,
+                    "justifyContent": "space-between",
+                    "spacing": "none",
+                    "paddingStart": "12px",
+                    "height": "36px",
+                    "paddingTop": "0px",
+                    "paddingBottom": "0px"
+                  }
+                ],
+                "paddingBottom": "12px",
+                "alignItems": "flex-start",
+                "height": "48px"
+              }
+            ],
+            "paddingAll": "24px",
+            "backgroundColor": "#FFFFFF",
+            "spacing": "none"
+          }
+        }
+      }
+    ],
+    "explanation": "對於區間總結類型的訊息，文字訊息現在會顯示在Flex訊息之前，而不會影響到一般記帳訊息的顯示順序。",
+    "notes": "注意：這個修改只會影響到type為「date_range_summary」的訊息，一般記帳和其他總結的順序保持不變。"
+  }
+}

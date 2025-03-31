@@ -57,6 +57,30 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
       messages.push(transcriptionFlexMessage);
     }
 
+    // 特殊處理：如果是區間總結類型，先添加文本訊息，再添加Flex訊息
+    if (
+      responseType === "date_range_summary" &&
+      messageText &&
+      messageText.trim() !== ""
+    ) {
+      const textMessageObj = {
+        type: "text",
+        text: messageText,
+      };
+
+      // 如果是Cony訊息，添加sender信息
+      if (isConyMessage) {
+        textMessageObj.sender = {
+          name: "Cony",
+          iconUrl:
+            "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
+        };
+      }
+
+      messages.push(textMessageObj);
+      console.log("添加區間總結文字訊息在Flex消息之前");
+    }
+
     // 2. 添加所有的 Flex 消息
     response.flexMessages.forEach((flexMessage, index) => {
       // 根據響應類型確定適當的 altText
@@ -68,6 +92,8 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
         altText = "📊 收支總結";
       } else if (responseType === "balance_summary") {
         altText = "💰 餘額";
+      } else if (responseType === "date_range_summary") {
+        altText = "📊 區間收支總結";
       } else {
         // 嘗試從 flexMessage 結構中提取類型
         try {
@@ -98,8 +124,12 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
       messages.push(flexMessageObj);
     });
 
-    // 3. 如果有非空的文本，添加文本消息
-    if (messageText && messageText.trim() !== "") {
+    // 3. 如果有非空的文本，且不是區間總結類型（區間總結的文本已在前面添加），再添加文本消息
+    if (
+      responseType !== "date_range_summary" &&
+      messageText &&
+      messageText.trim() !== ""
+    ) {
       const textMessageObj = {
         type: "text",
         text: messageText,
@@ -115,7 +145,7 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
       }
 
       messages.push(textMessageObj);
-    } else {
+    } else if (responseType !== "date_range_summary") {
       console.log("文本為空或僅包含空白字符，不發送文本消息");
     }
 
@@ -179,6 +209,30 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
     messages.push(transcriptionFlexMessage);
   }
 
+  // 特殊處理：如果是區間總結類型，先添加文本訊息，再添加Flex訊息
+  if (
+    processedMessage.type === "date_range_summary" &&
+    processedMessage.text &&
+    processedMessage.text.trim() !== ""
+  ) {
+    const textMessageObj = {
+      type: "text",
+      text: processedMessage.text,
+    };
+
+    // 如果是Cony訊息，添加sender信息
+    if (isConyMessage) {
+      textMessageObj.sender = {
+        name: "Cony",
+        iconUrl:
+          "https://gcp-obs.line-scdn.net/0hERW2_cUbGn1qSwoc-HdlKlMdFgxZLw97BDMBHEYfTUxHKUEjVHhWB0pMQUpbKw58UzEFGk5OQkRFe1p4VS8",
+      };
+    }
+
+    messages.push(textMessageObj);
+    console.log("添加區間總結文字訊息在Flex消息之前");
+  }
+
   // 2. 添加 Flex Messages（記帳訊息或教學文檔，如果有）
   if (
     processedMessage.flexMessages &&
@@ -197,6 +251,8 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
       } else if (processedMessage.type === "balance_summary") {
         // For balance summary messages
         altText = "💰 餘額";
+      } else if (processedMessage.type === "date_range_summary") {
+        altText = "📊 區間收支總結";
       } else {
         // For transaction records, check the pill text to determine if it's income or expense
         // The pill text is in the first box's second item's contents first item
@@ -229,7 +285,12 @@ async function createMessagesFromResponse(response, isConyMessage = false) {
   }
 
   // 3. 添加文字訊息（如果有，且不為空），確保文字訊息在 Flex 消息之後
-  if (processedMessage.text && processedMessage.text.trim() !== "") {
+  // 對於區間總結類型，文本已在前面添加，這里跳過
+  if (
+    processedMessage.type !== "date_range_summary" &&
+    processedMessage.text &&
+    processedMessage.text.trim() !== ""
+  ) {
     const textMessageObj = {
       type: "text",
       text: processedMessage.text,

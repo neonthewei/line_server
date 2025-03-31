@@ -1,0 +1,233 @@
+{
+  "type": "bubble",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "2023/01/01 至 2023/01/31",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "align": "start",
+                    "margin": "none"
+                  }
+                ],
+                "height": "18px",
+                "justifyContent": "flex-end",
+                "alignItems": "center",
+                "paddingBottom": "0px"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "$ 0",
+                    "size": "xxl",
+                    "color": "#555555",
+                    "weight": "bold",
+                    "align": "start",
+                    "wrap": false,
+                    "adjustMode": "shrink-to-fit",
+                    "maxLines": 1
+                  }
+                ],
+                "height": "18px",
+                "justifyContent": "flex-start",
+                "alignItems": "center",
+                "margin": "none",
+                "spacing": "none",
+                "paddingTop": "0px"
+              }
+            ],
+            "flex": 1,
+            "justifyContent": "space-between",
+            "spacing": "none",
+            "height": "36px",
+            "paddingTop": "0px",
+            "paddingBottom": "0px"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "收",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "flex": 0,
+                    "margin": "xl",
+                    "align": "start"
+                  },
+                  {
+                    "type": "text",
+                    "text": "$ 0",
+                    "size": "md",
+                    "color": "#555555",
+                    "weight": "bold",
+                    "align": "end",
+                    "wrap": false,
+                    "adjustMode": "shrink-to-fit",
+                    "flex": 1,
+                    "maxLines": 1
+                  }
+                ],
+                "alignItems": "center",
+                "justifyContent": "space-between",
+                "spacing": "sm",
+                "width": "100%",
+                "flex": 1,
+                "paddingStart": "20px",
+                "height": "18px",
+                "margin": "none"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "支",
+                    "weight": "bold",
+                    "size": "sm",
+                    "color": "#555555",
+                    "flex": 0,
+                    "margin": "xl",
+                    "align": "start"
+                  },
+                  {
+                    "type": "text",
+                    "text": "$ 0",
+                    "size": "md",
+                    "color": "#555555",
+                    "weight": "bold",
+                    "align": "end",
+                    "wrap": false,
+                    "adjustMode": "shrink-to-fit",
+                    "flex": 1,
+                    "maxLines": 1
+                  }
+                ],
+                "margin": "none",
+                "alignItems": "center",
+                "justifyContent": "space-between",
+                "spacing": "sm",
+                "width": "100%",
+                "flex": 1,
+                "paddingStart": "20px",
+                "height": "18px"
+              }
+            ],
+            "flex": 2,
+            "justifyContent": "space-between",
+            "spacing": "none",
+            "paddingStart": "12px",
+            "height": "36px",
+            "paddingTop": "0px",
+            "paddingBottom": "0px"
+          }
+        ],
+        "paddingBottom": "20px",
+        "alignItems": "flex-start",
+        "height": "48px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "separator",
+            "color": "#DDDDDD"
+          }
+        ],
+        "paddingBottom": "12px",
+        "paddingTop": "8px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "text",
+            "text": "支出分析",
+            "weight": "bold",
+            "size": "sm",
+            "color": "#555555",
+            "margin": "none"
+          }
+        ],
+        "paddingBottom": "6px"
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                  {
+                    "type": "filler"
+                  }
+                ],
+                "width": "100%",
+                "backgroundColor": "#EEEEEE"
+              }
+            ],
+            "height": "24px",
+            "cornerRadius": "md",
+            "margin": "md"
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [],
+            "height": "16px"
+          },
+          {
+            "type": "text",
+            "text": "暫無分析數據",
+            "size": "sm",
+            "color": "#999999",
+            "align": "center",
+            "margin": "md"
+          }
+        ],
+        "spacing": "xs"
+      }
+    ],
+    "paddingAll": "24px",
+    "backgroundColor": "#FFFFFF",
+    "spacing": "none"
+  },
+  "styles": {
+    "body": {
+      "backgroundColor": "#FFFFFF"
+    }
+  }
+}
